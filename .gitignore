@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+Data/
+Results/
+Models/
+Scripts/
+*.csv
+*.tif
+*.zip
+*.tgz
