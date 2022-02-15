@@ -47,7 +47,7 @@ repo \[@hester\] you will find .gitignore rules that include that
 for reducing word limit not all backend code was made visible in the
 report.
 
-* See '0_Caret_Predict_to_writeRasterOutput.md' file for full report and outputs... * 
-* (https://github.com/seamusrobertmurphy/0_Caret_Predict_to_writeRasterOutput/blob/0426c60811d9abd433a93abb7c51403d4a5cd3a6/0_Caret_Predict_to_writeRasterOutput.md)*
+*See '0_Caret_Predict_to_writeRasterOutput.md' file for full report and outputs:* 
+(https://github.com/seamusrobertmurphy/0_Caret_Predict_to_writeRasterOutput/blob/0426c60811d9abd433a93abb7c51403d4a5cd3a6/0_Caret_Predict_to_writeRasterOutput.md)*
  
 
