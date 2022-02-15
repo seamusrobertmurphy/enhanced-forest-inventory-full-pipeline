@@ -26,23 +26,14 @@ SRM-LQ
 ## Action
 
 This is an R Markdown document showing the script run-through and code
-edits made during the last meeting. There was also mention of the need
-for better ways to edit and peer-review future script development. Some
-R-users have recommended using trackdown with github functions and
-google docs. These can allow some forms of collaboration with code
-editing or at least exchanges of iterative coding done locally and
-remotely. This document written as a quick trial run to get that up and
-running.
-
-The exported table of contents below presents a tentative pipeline of
-our workflow, which we also discussed editing and rearranging in places
-for improved parsimony. For peer-reviewing, we can comment on these
-Rmarkdown reports directly to the pdf attachment using the usual callout
-boxes and we can also edit the backend code and push these commits to
-the github repository for downloading locally or forking remotely This
+edits made during the last meeting. The exported table of contents below 
+presents a tentative pipeline of the discussed workflow though still room
+for improved parsimony. For peer-reviewing, we can comment on the
+Rmarkdown reports directly or go ahead and make code edits to the 
+github repository by downloading locally and forking remotely. This
 gives us a kind of double-layered privacy so that no html.docs or data
-sources are available beyond the repo access. When cloning the github
-repo \[@hester\] you will find .gitignore rules that include that
+sources are available beyond the repo access. After cloning the github
+repo you will find the proposed .gitignore rules that include
 “Data/” folder otherwise shared via the project drive. Worth noting that
 for reducing word limit not all backend code was made visible in the
 report.
