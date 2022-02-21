@@ -3,6 +3,10 @@ Script Review: “0_EFI_CaretEnsemble\_…R”
 SRM-LQ
 24/01/2022
 
+*See '0_Caret_Predict_to_writeRasterOutput.md' file for full report and outputs:* 
+(https://github.com/seamusrobertmurphy/0_Caret_Predict_to_writeRasterOutput/blob/0426c60811d9abd433a93abb7c51403d4a5cd3a6/0_Caret_Predict_to_writeRasterOutput.md)*
+ 
+
 -   [Action](#action)
 -   [1 Import](#import)
     -   [1.1 Import permanent sample plot
@@ -38,7 +42,5 @@ repo you will find the proposed .gitignore rules that include
 for reducing word limit not all backend code was made visible in the
 report.
 
-*See '0_Caret_Predict_to_writeRasterOutput.md' file for full report and outputs:* 
-(https://github.com/seamusrobertmurphy/0_Caret_Predict_to_writeRasterOutput/blob/0426c60811d9abd433a93abb7c51403d4a5cd3a6/0_Caret_Predict_to_writeRasterOutput.md)*
- 
+
 
