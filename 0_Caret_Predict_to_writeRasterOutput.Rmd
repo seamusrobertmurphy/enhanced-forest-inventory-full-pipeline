@@ -73,9 +73,7 @@ library(spatial)
 library(tibble)
 library(stringr)
 library(ForestTools)
-#devtools::install_github("odeleongt/insetmap")
-########################
-# seed for reproducibility
+library(conflicted)
 set.seed(23)
 ```
 
@@ -91,7 +89,6 @@ The exported table of contents below presents a tentative pipeline of our workfl
 
 ![](Data/Xi%20et%20al%202022%20Graphical%20Abstract%20II.png){width="339"}
 
-
 # Import
 
 ## Import permanent sample plot data
@@ -99,7 +96,7 @@ The exported table of contents below presents a tentative pipeline of our workfl
 Import permanent sample plot data in csv format. Here and for other data sourcing we need to set our working directory to where the csv dataset is stored in our local folder. That is because when working with Rmarkdown.Rmd files and github repositories, the working directory will reset back to the root folder where the repo is synced to once the code chunk is passed. This means we can store the data privately twice over, so no raw data is saved on github nor on any shared drive folder. Though, shared static data sources are recommended for click-&-run outputs (need to discuss). This is done using the following code:
 
 ```{r, echo=TRUE, warning=FALSE, error=FALSE, message=FALSE, cols.print=7, rows.print=10}
-faib_psp <- read.csv("./Data/FAIB_PSP_20211028.csv")
+faib_psp <- utils::read.csv("./Data/FAIB_PSP_20211028.csv")
 print(as_tibble(faib_psp), n = 10)
 #DT::datatable(faib_psp, rownames = FALSE, filter="top", options = list(pageLength = 5, scrollX=T))
 ```
@@ -132,50 +129,40 @@ Perhaps worth mentioning also that R doesn't seem to like interruptions during z
 
 \* Chapter 3 from Robin LoveLace's book 'Geocomputation in R' [link here](https://geocompr.robinlovelace.net/attr.html)
 
-```{r eval=TRUE, echo=TRUE, error=FALSE, fig.show="hold", message=FALSE, warning=FALSE, cache=TRUE, out.width="33%", cache=TRUE}
-#download.file(url = "https://pub.data.gov.bc.ca/datasets/02dba161-fdb7-48ae-a4bb-bd6ef017c36d/2019/VEG_COMP_LYR_R1_POLY_2019.gdb.zip", destfile = "./Data/vri_layers.zip", overwrite=TRUE)
-#zip_file_vri = ("./Data/vri_layers.zip")
-#unzip(zip_file_vri, exdir="./Data", overwrite = TRUE)
-#download.file(url = "https://distribution.data.gov.bc.ca/BCGW_7113060B_1644439767665_15956.zip", destfile = "./Data/wildfire_mask.zip", overwrite = TRUE)
-#zip_file_wildfire = ("./Data/wildfire_mask.zip")
-#unzip(zip_file_wildfire, exdir="./Data", overwrite = TRUE)
-wildfire_sf = read_sf("./Data/PROT_HISTORICAL_FIRE_POLYS_SP//H_FIRE_PLY_polygon.shp")
-wildfire_sf = wildfire_sf["FIRE_YEAR"]
-wildfire_aoi = wildfire_sf$FIRE_YEAR > 2000
-wildfire_aoi = st_intersection(st_make_valid(wildfire_sf), aoi_sf)
-
+```{r eval=FALSE, echo=TRUE, error=FALSE, fig.show="hold", message=FALSE, warning=FALSE, cache=TRUE, out.width="50%", cache=TRUE}
+download.file(url = "https://pub.data.gov.bc.ca/datasets/02dba161-fdb7-48ae-a4bb-bd6ef017c36d/2019/VEG_COMP_LYR_R1_POLY_2019.gdb.zip", destfile = "./Data/vri_layers.zip", overwrite=TRUE)
+zip_file_vri = ("./Data/vri_layers.zip")
+unzip(zip_file_vri, exdir="./Data", overwrite = TRUE)
 vri_sf = read_sf("./Data/VEG_COMP_LYR_R1_POLY/VEG_R1_PLY_polygon.shp")
 vri_species = vri_sf["SPEC_CD_1"]
 str_trim(vri_species, side = "both")
-
-vri_species_aoi =  filter(vri_species, SPEC_CD_1=='BL' | SPEC_CD_1=='FD' |SPEC_CD_1=='FDI' | SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX')
+vri_species_aoi =  dplyr::filter(vri_species, SPEC_CD_1=='BL' | SPEC_CD_1=='FD' |SPEC_CD_1=='FDI' | SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX')
 vri_species_aoi = st_intersection(st_make_valid(vri_species_aoi), aoi_sf)
 vri_species_aoi = rename(vri_species_aoi, species_class = SPEC_CD_1)
-vri_species_aoi$species_class = recode(vri_species_aoi$species_class, 
+vri_species_aoi$species_class = dplyr::recode(vri_species_aoi$species_class, 
   PL = 0, PLI = 0, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2, BL = 5)
 vri_species_aoi$species_class = as.factor(vri_species_aoi$species_class)
 summary.factor(vri_species_aoi$species_class)
 species_class_sf = vri_species_aoi["species_class"]
-
-# new individual tree pipeline adopted below
-#vri_stemsha = vri_sf["LIVE_STEMS"]
-#vri_stemsha_aoi = st_intersection(st_make_valid(vri_stemsha), aoi_sf)
-#vri_stemsha_aoi = rename(vri_stemsha_aoi, stemsha_L = LIVE_STEMS)
-#stemsha_L_sf = vri_stemsha_aoi["stemsha_L"]
-
 # Terra package requires a spatRaster template to rasterize over
-raster_template = rast(ext(species_class_sf), resolution = 20, crs = st_crs(species_class_sf)$wkt)
+raster_template = rast(ext(aoi_sf), resolution = 1, crs = st_crs(vri_sf)$wkt)
 species_class_rast = rasterize(vect(species_class_sf), 
   raster_template, field = "species_class", touches = TRUE)
-#stemsha_L_rast = rasterize(vect(stemsha_L_sf), 
- # raster_template, field = "stemsha_L", fun = sum, touches = TRUE)
-vri_harvest = vri_sf["HRVSTDT"]
 mask_rast = rasterize(vect(wildfire_aoi), 
   raster_template, field = "FIRE_YEAR", touches = TRUE)
-
 plot(species_class_rast, main = "species_class_raster")
-#plot(stemsha_L_rast, main = "stemsha_L")
 plot(mask_rast, main = "mask", col = "black", legend=FALSE)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+download.file(url = "https://distribution.data.gov.bc.ca/BCGW_7113060B_1644439767665_15956.zip", destfile = "./Data/wildfire_mask.zip", overwrite = TRUE)
+zip_file_wildfire = ("./Data/wildfire_mask.zip")
+unzip(zip_file_wildfire, exdir="./Data", overwrite = TRUE)
+wildfire_sf = read_sf("./Data/PROT_HISTORICAL_FIRE_POLYS_SP//H_FIRE_PLY_polygon.shp")
+wildfire_sf = wildfire_sf["FIRE_YEAR"]
+wildfire_aoi = wildfire_sf$FIRE_YEAR > 2000
+wildfire_aoi = st_intersection(st_make_valid(wildfire_sf), aoi_sf)
+vri_harvest = vri_sf["HRVSTDT"]
 ```
 
 ## Import LiDAR data and derive terrain rasters
@@ -268,33 +255,37 @@ plot(heights, window_Quan, type = "l",
      ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='project allometry')
 plot(heights, window_Plowright, type = "l",  
      ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='plowright')
-
-# find trees: foretTools pipeline
-#ttops_6m_Quan<- vwf(CHM = lead_htop_raster, winFun = wf_Quan, minHeight = 6, verbose = FALSE)
-#ttops_6m_Plowright <- vwf(CHM = lead_htop_raster, winFun = wf_Plowright, minHeight = 6, verbose = FALSE)
-#height_crown_cor = lm(ttops_6m_Quan$height ~ ttops_6m_Quan$winRadius)
-#height_crown_cor
-#ttops_2m_Quan<- vwf(CHM = lead_htop_raster, winFun = wf_Quan, minHeight = 2)
-#ttops_2m_Plowright <- vwf(CHM = lead_htop_raster, winFun = wf_Plowright, minHeight = 2)
-
-# find trees: lidr pipeline
-#ttops_6m_Quan <- lidR::find_trees(lead_htop_raster[lead_htop_raster>6], lmf(wf_Quan))
-#ttops_6m_Plowright <- lidR::find_trees(lead_htop_raster[lead_htop_raster>6], lmf(wf_Plowright))
-
-#las_tile_ahbau_ttops_sf = st_as_sf(las_tile_ahbau_ttops)
-#stemsha_L_sf = st_as_sf(stemsha_L)
+#foretTools pipeline
+ttops_6m_Quan = vwf(CHM = lead_htop_raster, winFun = wf_Quan, minHeight = 6)
+ttops_6m_Plowright = vwf(CHM = lead_htop_raster, winFun = wf_Plowright, minHeight = 6)
+ttops_6m_wf5 = vwf(CHM = lead_htop_raster, winFun = 5, minHeight = 6)
+height_crown_cor = lm(ttops_6m_Quan$height ~ ttops_6m_Quan$winRadius)
+height_crown_cor
+ttops_2m_Quan = vwf(CHM = lead_htop_raster, winFun = wf_Quan, minHeight = 2)
+ttops_2m_Plowright = vwf(CHM = lead_htop_raster, winFun = wf_Plowright, minHeight = 2)
+#lidr pipeline
+ttops_6m_Quan = lidR::find_trees(lead_htop_raster[lead_htop_raster>6], lmf(wf_Quan))
+ttops_6m_Plowright = lidR::find_trees(lead_htop_raster[lead_htop_raster>6], lmf(wf_Plowright))
+stemsha_L_sf = st_as_sf(ttops_6m_Quan)
+stemsha_L_raster = raster::raster(stemsha_L_sf)
 # visualize
 #mypalette<-brewer.pal(8,"Greens")
 #plot(lead_htop_raster, col = mypalette, alpha=0.6)
 #plot(st_geometry(stemsha_L["treeID"]), add=TRUE, cex = 0.001, pch=19, col = 'red', alpha=0.8)
+writeRaster(stemsha_L_raster, filename = "./Data/Raster_Covariates/stemsha_L_raster.tif", overwrite=TRUE)
+plot(stemsha_L_raster)
 ```
 
-```{r}
-ttops_6m_Plowright <- vwf(CHM = lead_htop_raster, winFun = wf_Plowright, minHeight = 6, verbose = FALSE)
-```
-
-```{r}
-ttops_6m_Quan<- vwf(CHM = lead_htop_raster, winFun = wf_Quan, minHeight = 6, verbose = FALSE)
+```{r, eval=TRUE, echo=FALSE}
+# note that new pipeline adopted below: see individual tree detection section
+vri_stemsha = vri_sf["LIVE_STEMS"]
+vri_stemsha_aoi = st_intersection(st_make_valid(vri_stemsha), aoi_sf)
+vri_stemsha_aoi = rename(vri_stemsha_aoi, stemsha_L = LIVE_STEMS)
+stemsha_L_sf = vri_stemsha_aoi["stemsha_L"]
+stemsha_L_rast = rasterize(vect(stemsha_L_sf), 
+  raster_template, field = "stemsha_L", fun = sum, touches = TRUE)
+stemsha_L_raster = raster::raster(stemsha_L_rast)
+plot(stemsha_L_raster)
 ```
 
 # Tidy
@@ -303,11 +294,11 @@ ttops_6m_Quan<- vwf(CHM = lead_htop_raster, winFun = wf_Quan, minHeight = 6, ver
 
 To run the final ecosystem models and generate the predicted rasters, we need to match the number and naming of predictors between our fitted data (permanent sample plot data) and our spatial data (raster stack). From descriptives of category labeling and species lists, the 'spc_live1' predictor in faib dataset was adopted. However, this might need checking. In addition to our target variable 'wsvha_L', the faib data was subsetted down to include only 'elev', 'slope', 'asp_co', 'asp_sin', 'lead_htop', 'stemsha_L' and 'species_class' as predictors. The data was then scanned for missing or problematic observations and transformed into numeric values required for raster operations.
 
-```{r eval=TRUE, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+```{r, eval=TRUE, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
 faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "SB" | spc_live1 == "SE" | 
   spc_live1 == "SX" | spc_live1 == "FD" | spc_live1 == "CW" | spc_live1 == "HW" | spc_live1 == "BL")
-faib_psp$species_class = recode(faib_psp$spc_live1, 
+faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, 
     PL = 0, SB = 1, SE = 1, SX = 1, FD = 2, CW = 3, HW = 4, BL = 5)
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
@@ -380,13 +371,13 @@ mask = mask_rast
 
 crs(lead_htop) = "epsg:3005"
 lead_htop = aggregate(lead_htop, fact = 20, fun = mean) 
-slope = resample(slope, elev, method="bilinear")
-asp_cos = resample(asp_cos, elev, method="bilinear")
-asp_sin = resample(asp_sin, elev, method="bilinear")
-lead_htop = resample(lead_htop, elev, method="bilinear")
-species = resample(species, elev, method="near")
-stems = resample(stems, elev, method="bilinear")
-mask = resample(mask, elev, method="near")
+slope = terra::resample(slope, elev, method="bilinear")
+asp_cos = terra::resample(asp_cos, elev, method="bilinear")
+asp_sin = terra::resample(asp_sin, elev, method="bilinear")
+lead_htop = terra::resample(lead_htop, elev, method="bilinear")
+species = terra::resample(species, elev, method="near")
+stems = terra::resample(stems, elev, method="bilinear")
+mask = terra::resample(mask, elev, method="near")
 
 elev = mask(elev, vect(aoi_sf))
 lead_htop = mask(lead_htop, vect(aoi_sf))
@@ -623,10 +614,10 @@ tunedModel_svm_m2_test = predict(
   tunedModel_svm_m2_train,
   X_test_m2, y_test_m2)
 
-tunedModel_svm_m2_test_MAE = MAE(tunedModel_svm_m2_test, y_test_m2)
-tunedModel_svm_m2_test_RMSE = RMSE(tunedModel_svm_m2_test, y_test_m2)
-tunedModel_svm_m2_full_MAE = MAE(tunedModel_svm_m2, y_m2)
-tunedModel_svm_m2_full_RMSE = RMSE(tunedModel_svm_m2, y_m2)
+tunedModel_svm_m2_test_MAE =  caret::MAE(tunedModel_svm_m2_test, y_test_m2)
+tunedModel_svm_m2_test_RMSE = caret::RMSE(tunedModel_svm_m2_test, y_test_m2)
+tunedModel_svm_m2_full_MAE = caret::MAE(tunedModel_svm_m2, y_m2)
+tunedModel_svm_m2_full_RMSE = caret::RMSE(tunedModel_svm_m2, y_m2)
 tunedModel_svm_m2_full_RMSEratio = tunedModel_svm_m2_full_RMSE/tunedModel_svm_m2_test_RMSE
 print(summary(tunedModel_svm_m2_full))
 ```
