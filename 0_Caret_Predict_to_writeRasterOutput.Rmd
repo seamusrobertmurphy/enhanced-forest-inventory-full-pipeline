@@ -240,8 +240,6 @@ wf_Quan<-function(x){
   y<-a*x+b 
   return(y)}
 # window function (Plowright, 2017)  
-# Plowright, A. (2015). Extracting trees in an urban environment using airborne LiDAR. 
-# Doctoral dissertation, University of British Columbia.
 wf_Plowright<-function(x){ # floor reccomended at 2 and then 1.5m
   a=0.05
   b=0.6 #Go big but not 2.49 big. maybe increase slope a hair.
@@ -255,7 +253,7 @@ plot(heights, window_Quan, type = "l",
      ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='project allometry')
 plot(heights, window_Plowright, type = "l",  
      ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='plowright')
-#foretTools pipeline
+#forestTools pipeline
 ttops_6m_Quan = vwf(CHM = lead_htop_raster, winFun = wf_Quan, minHeight = 6)
 ttops_6m_Plowright = vwf(CHM = lead_htop_raster, winFun = wf_Plowright, minHeight = 6)
 ttops_6m_wf5 = vwf(CHM = lead_htop_raster, winFun = 5, minHeight = 6)
