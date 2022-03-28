@@ -97,9 +97,9 @@ window_Plowright <- wf_Plowright(heights)
 plot(heights, window_Quan, type = "l",  ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='Quan')
 plot(heights, window_Plowright, type = "l", ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='Plowright')
 
-# Derive CHM-based covariates: ForestTools pipeline
 ttops_3m_Quan = ForestTools::vwf(CHM = lead_htop_raster, winFun = wf_Quan, minHeight = 3)
 ttops_2m_Quan = ForestTools::vwf(CHM = lead_htop_raster, winFun = wf_Quan, minHeight = 2)
+ttops_2m_Plowright = ForestTools::vwf(CHM = lead_htop_raster, winFun = wf_Plowright, minHeight = 2)
 ttops_3m_Plowright = ForestTools::vwf(CHM = lead_htop_raster, winFun = wf_Plowright, minHeight = 3)
 
 plot(lead_htop_raster)
@@ -152,13 +152,21 @@ lead_htop_raster_2m1.5m_95th_20cell = crownsPoly_2mTO1.5m_Quan_gridStats_20cell[
 lead_htop_raster_2m1.5m_95th_50cell = crownsPoly_2mTO1.5m_Quan_gridStats_50cell[["height95thQuantile"]]
 lead_htop_raster_2m1.5m_95th_100cell = crownsPoly_2mTO1.5m_Quan_gridStats_100cell[["height95thQuantile"]]
 
-stemsha_L_raster_2m_20cell <- sp_summarise(trees = ttops_2m_Quan, grid = 20)
-stemsha_L_raster_2m_50cell <- sp_summarise(trees = ttops_2m_Quan, grid = 50)
-stemsha_L_raster_2m_100cell <- sp_summarise(trees = ttops_2m_Quan, grid = 100)
+stemsha_L_raster_2m_20cell <- sp_summarise(ttops_2m_Quan, grid = 20)
+stemsha_L_raster_2m_50cell <- sp_summarise(ttops_2m_Quan, grid = 50)
+stemsha_L_raster_2m_100cell <- sp_summarise(ttops_2m_Quan, grid = 100)
 
-stemsha_L_raster_3m_20cell <- sp_summarise(trees = ttops_3m_Quan, grid = 20)
-stemsha_L_raster_3m_50cell <- sp_summarise(trees = ttops_3m_Quan, grid = 50)
-stemsha_L_raster_3m_100cell <- sp_summarise(trees = ttops_3m_Quan, grid = 100)
+stemsha_L_raster_3m_20cell <- sp_summarise(ttops_3m_Quan, grid = 20)
+stemsha_L_raster_3m_50cell <- sp_summarise(ttops_3m_Quan, grid = 50)
+stemsha_L_raster_3m_100cell <- sp_summarise(ttops_3m_Quan, grid = 100)
+
+stemsha_L_raster_2m_20cell_plowright <- sp_summarise(ttops_2m_Plowright, grid = 20)
+stemsha_L_raster_2m_50cell_plowright <- sp_summarise(ttops_2m_Plowright, grid = 50)
+stemsha_L_raster_2m_100cell_plowright <- sp_summarise(ttops_2m_Plowright, grid = 100)
+
+stemsha_L_raster_3m_20cell <- sp_summarise(ttops_3m_Plowright, grid = 20)
+stemsha_L_raster_3m_50cell <- sp_summarise(ttops_3m_Plowright, grid = 50)
+stemsha_L_raster_3m_100cell <- sp_summarise(ttops_3m_Plowright, grid = 100)
 
 lead_htop_20 = lead_htop_raster_3m2m_95th_20cell
 lead_htop_50 = lead_htop_raster_3m2m_95th_50cell
@@ -179,6 +187,7 @@ writeRaster(stemsha_L_100, filename = "./Data/Raster_Covariates/UnMasked/stems_L
 lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_raster_100cell.tif")
 stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stems_L_ha_raster_100cell.tif")
 
+# Tidy raster covariates
 lead_htop_rast = terra::rast(lead_htop)
 stemsha_L_rast = terra::rast(stemsha_L)
 elev_rast = terra::rast(elev)
@@ -208,6 +217,13 @@ asp_sin_rast = mask(asp_sin_rast, lead_htop_rast, inverse=FALSE)
 species_class_rast = mask(species_class_rast, lead_htop_rast, inverse=FALSE)
 stemsha_L_rast = mask(stemsha_L_rast, lead_htop_rast, inverse=FALSE)
 
+#lead_htop_rast = mask(lead_htop_rast, species_class_rast, inverse=FALSE)
+#elev_rast = mask(elev_rast, species_class_rast, inverse=FALSE)
+#slope_rast = mask(slope_rast, species_class_rast, inverse=FALSE)
+#asp_cos_rast = mask(asp_cos_rast, species_class_rast, inverse=FALSE)
+#asp_sin_rast = mask(asp_sin_rast, species_class_rast, inverse=FALSE)
+#stemsha_L_rast = mask(stemsha_L_rast, species_class_rast, inverse=FALSE)
+
 names(elev_rast) = "elev"
 names(slope_rast) = "slope"
 names(asp_cos_rast) = "asp_cos"
@@ -236,7 +252,7 @@ names(covs_m2)
 # Tidy ground plot data
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
 faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "SB" | spc_live1 == "SE" | 
-                    spc_live1 == "SX" | spc_live1 == "FD" | spc_live1 == "CW" | spc_live1 == "HW" | spc_live1 == "BL")
+  spc_live1 == "SX" | spc_live1 == "FD" | spc_live1 == "CW" | spc_live1 == "HW" | spc_live1 == "BL")
 faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, 
   PL = 0, SB = 1, SE = 1, SX = 1, FD = 2, CW = 3, HW = 4, BL = 5)
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
@@ -292,13 +308,13 @@ tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,
 tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
 save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_mar24.RData")
 
-
-names(faib_vri_true_m2_df)
-names(covs_m2)
-
 # writeRaster and plot outputs
 tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
 writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_mar24.tif", overwrite=TRUE)
+model1_svmRadial = raster::raster("./Results/model1_svmRadial_mar24.tif")
+plot(model1_svmRadial)
+
+
 
 
 
@@ -320,8 +336,27 @@ writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_
 
 
 # Derive CHM-based covariates: lidR to ForestTools pipeline
-ttops_Quan_lidR_find_trees = lidR::find_trees(lead_htop_raster, lmf(wf_Quan)) #SpatialPointsDataFrame object
-ttops_Quan_lidR_locate_trees = lidR::locate_trees(lead_htop_raster, lmf(wf_Quan)) #SimpleFeatures object
+lead_htop_raster2 = raster::raster("./Data/Raster_Covariates/lead_htop_raster.tif")
+lead_htop_rast2 = terra::rast(lead_htop_raster2)
+lead_htop_rast2 = terra::aggregate(lead_htop_rast2, fact = 20, fun = mean)
+lead_htop_rast2 = terra::focal(lead_htop_rast2, w = kernel, fun = median, na.rm = TRUE)
+lead_htop_raster2 = raster::raster(lead_htop_rast2)
+
+ttops_Quan_lidR_find_trees = lidR::find_trees(lead_htop_raster2, lmf(wf_Quan)) #SpatialPointsDataFrame object
+ttops_Quan_lidR_locate_trees = lidR::locate_trees(lead_htop_raster2, lmf(wf_Quan)) #SimpleFeatures object
+
+
+
+
+st_crs(ttops_Quan_lidR_locate_trees) = CRS("+init=EPSG:3005")
+st_crs(ttops_Quan_lidR_locate_trees)
+
+
+
+
+
+
+
 
 crowns_Quan_lidR_2m = ForestTools::mcws(treetops = ttops_Quan_lidR_find_trees, CHM = lead_htop_raster, minHeight = 2, verbose = FALSE)
 crowns_Quan_lidR_3m = ForestTools::mcws(treetops = ttops_Quan_lidR_find_trees, CHM = lead_htop_raster, minHeight = 2, verbose = FALSE)
@@ -347,3 +382,6 @@ crownsPoly_Quan_lidR_2m_gridStats_100cell <- ForestTools::sp_summarise(crowns_Qu
 crownsPoly_Quan_lidR_3m_gridStats_20cell <- ForestTools::sp_summarise(crowns_Quan_lidR_3m, grid = 20, variables = "height", statFuns = custFuns)
 crownsPoly_Quan_lidR_3m_gridStats_50cell <- ForestTools::sp_summarise(crowns_Quan_lidR_3m, grid = 50, variables = "height", statFuns = custFuns)
 crownsPoly_Quan_lidR_3m_gridStats_100cell <- ForestTools::sp_summarise(crowns_Quan_lidR_3m, grid = 100, variables = "height", statFuns = custFuns)
+
+
+#writeRaster(lead_htop_rast, filename = "./Data/Raster_Covariates/UnMasked/lead_htop_rast.tif", overwrite=TRUE)
