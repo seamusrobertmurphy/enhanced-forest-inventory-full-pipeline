@@ -338,6 +338,7 @@ plot(model1_svmRadial)
 # Derive CHM-based covariates: lidR to ForestTools pipeline
 lead_htop_raster2 = raster::raster("./Data/Raster_Covariates/lead_htop_raster.tif")
 lead_htop_rast2 = terra::rast(lead_htop_raster2)
+#crs(lead_htop_rast2) = "epsg:3005"
 lead_htop_rast2 = terra::aggregate(lead_htop_rast2, fact = 20, fun = mean)
 lead_htop_rast2 = terra::focal(lead_htop_rast2, w = kernel, fun = median, na.rm = TRUE)
 lead_htop_raster2 = raster::raster(lead_htop_rast2)
@@ -345,10 +346,7 @@ lead_htop_raster2 = raster::raster(lead_htop_rast2)
 ttops_Quan_lidR_find_trees = lidR::find_trees(lead_htop_raster2, lmf(wf_Quan)) #SpatialPointsDataFrame object
 ttops_Quan_lidR_locate_trees = lidR::locate_trees(lead_htop_raster2, lmf(wf_Quan)) #SimpleFeatures object
 
-
-
-
-st_crs(ttops_Quan_lidR_locate_trees) = CRS("+init=EPSG:3005")
+ttops_Quan_lidR_locate_trees = st_transform(ttops_Quan_lidR_locate_trees, crs(lead_htop_rast))
 st_crs(ttops_Quan_lidR_locate_trees)
 
 
