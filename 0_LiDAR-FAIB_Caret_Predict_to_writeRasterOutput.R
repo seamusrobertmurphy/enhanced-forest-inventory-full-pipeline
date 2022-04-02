@@ -7,58 +7,97 @@ library(sf)
 library(terra)
 library(raster)
 library(ggplot2)
+library(dplyr)
 library(ForestTools)
 library(lidR)
 library(e1071)
 library(caret)
+library(tibble)
 
 # Import ground plot data
 faib_psp <- utils::read.csv("./Data/FAIB_PSP_20211028.csv")
 print(as_tibble(faib_psp), n = 10)
 
 # Import AOi boundary
-aoi_sf <- sf::read_sf("./Data/BCTS_OPERATING_AREAS_SP/BCTS_OP_AR_polygon.shp")
+aoi_sf <- sf::read_sf("./Data/aoi_lidar.shp")
 aoi_sf = dplyr::rename(aoi_sf, AOI_Boundary = SHAPE)
 aoi_sf = aoi_sf[1, "AOI_Boundary"]
 plot(aoi_sf)
 
-# Import VRI layers
+# Import VRI & Mask layers
 vri_sf = sf::read_sf("./Data/VEG_COMP_LYR_R1_POLY/VEG_R1_PLY_polygon.shp")
 vri_species_aoi = vri_sf["SPEC_CD_1"]
 vri_species_aoi = st_intersection(st_make_valid(vri_species_aoi), aoi_sf)
-ggplot(vri_species_aoi) + geom_sf(aes(fill=SPEC_CD_1), size = 0.0005)
-vri_species_aoi =  dplyr::filter(vri_species_aoi, SPEC_CD_1=='BL' | SPEC_CD_1=='FD' | SPEC_CD_1=='FDI' 
-                                 | SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX')
+vri_species_aoi =  dplyr::filter(vri_species_aoi, SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX')
 vri_species_aoi = dplyr::rename(vri_species_aoi, species_class = SPEC_CD_1)
-vri_species_aoi$species_class = dplyr::recode(vri_species_aoi$species_class,
-                                              PL = 0, PLI = 0, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2, BL = 5)
+vri_species_aoi$species_class = dplyr::recode(vri_species_aoi$species_class, PL = 0, PLI = 0, SE = 1, SW = 1, SX = 1)
 vri_species_aoi$species_class = as.factor(vri_species_aoi$species_class)
 summary.factor(vri_species_aoi$species_class)
 vri_species_aoi = vri_species_aoi["species_class"]
-raster_template = rast(ext(aoi_sf), resolution = 20, crs = st_crs(aoi_sf)$wkt)
+raster_template = rast(ext(aoi_sf), resolution = 20, crs = st_crs(aoi_sf)$wkt) # template for rasterization
 species_class_rast = rasterize(vect(vri_species_aoi), raster_template, field = "species_class", touches = TRUE)
 plot(species_class_rast, main = "species_class_raster")
 writeRaster(species_class_rast, filename = "./Data/Raster_Covariates/UnMasked/species_class_raster.tif", overwrite=TRUE)
 
+
+mask_burn2017 = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/TCC_Burn_Severity TCC_Burn_Severity_2017.shp")
+mask_burn2017 = mask_burn2017["BurnSev"]
+mask_burn2017 = dplyr::filter(mask_burn2017, BurnSev == 'High')
+mask_burn2017 = sf::st_intersection(sf::st_make_valid(mask_burn2017), aoi_sf)
+mask_burn2018 = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/TCC_Burn_Severity TCC_Burn_Severity_2018.shp")
+mask_burn2018 = mask_burn2018["BurnSev"]
+mask_burn2018 = dplyr::filter(mask_burn2018, BurnSev == 'High')
+mask_burn2018 = sf::st_intersection(sf::st_make_valid(mask_burn2018), aoi_sf)
+mask_burn2021 = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/TCC_Burn_Severity TCC_Burn_Severity_2021.shp")
+mask_burn2021 = mask_burn2021["BurnSev"]
+mask_burn2021 = dplyr::filter(mask_burn2021, BurnSev == 'High')
+mask_burn2021 = sf::st_intersection(sf::st_make_valid(mask_burn2021), aoi_sf)
+masks_df = full_join(as_tibble(mask_burn2017), as_tibble(mask_burn2018), as_tibble(mask_burn2021), by = "geometry")
+masks_sf = st_as_sf(masks_df) # easier to combine by 'geometry'
+ggplot(masks_sf) + geom_sf(size = 0.0005)
+
+mask_clearcut = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/RSLT_CCRES_CLEAR.shp")
+mask_clearcut = sf::st_intersection(sf::st_make_valid(mask_clearcut), aoi_sf)
+masks_df = full_join(as_tibble(masks_sf), as_tibble(mask_clearcut), by = 'geometry')
+masks_sf = st_as_sf(masks_df)
+ggplot(masks_sf) + geom_sf()
+
+mask_blocks = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/TCC_Blocks_Join.shp")
+mask_blocks = sf::st_intersection(sf::st_make_valid(mask_blocks), aoi_sf)
+masks_df = full_join(as_tibble(masks_sf), as_tibble(mask_blocks), by = 'geometry')
+masks_sf = st_as_sf(masks_df)
+ggplot(masks_sf) + geom_sf()
+
+mask_roads_tcc = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/TCC_Roads.shp")
+mask_roads_tcc = sf::st_zm(mask_roads_tcc)
+mask_roads_tcc = sf::st_intersection(sf::st_make_valid(mask_roads_tcc), aoi_sf)
+mask_roads_tcc = sf::st_buffer(mask_roads_tcc, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
+mask_roads_ften = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/FTEN_Roads_All.shp")
+mask_roads_ften = sf::st_zm(mask_roads_ften)
+mask_roads_ften = sf::st_intersection(sf::st_make_valid(mask_roads_ften), aoi_sf)
+mask_roads_ften = sf::st_buffer(mask_roads_ften, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
+masks_df = full_join(as_tibble(masks_sf), as_tibble(mask_roads_tcc), as_tibble(mask_roads_ften), by = 'geometry')
+masks_sf = st_as_sf(masks_df)
+ggplot(masks_sf) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+masks_rast = rasterize(vect(masks_sf), raster_template, touches = TRUE)
+plot(masks_rast)
+
 # Import LiDAR and derive DEM-based covariates
-lead_htop_raster = raster::raster("./Data/Raster_Covariates/lead_htop_raster.tif")
 elev_raster = raster::raster("./Data/Raster_Covariates/elev_raster.tif")
-lead_htop_rast = terra::rast(lead_htop_raster)
 elev_rast = terra::rast(elev_raster)
-terra::crs(lead_htop_rast) = "epsg:3005"
 terra::crs(elev_rast) = "epsg:3005"
-lead_htop_rast = terra::aggregate(lead_htop_rast, fact = 20, fun = mean)
 elev_rast = terra::aggregate(elev_rast, fact = 20, fun = mean)
+
 slope_rast = terra::terrain(elev_rast, v="slope", unit="degrees", neighbors=8)
 aspect_rast = terra::terrain(elev_rast, v="aspect", unit="degrees", neighbors=8)
 asp_cos_rast = cos((aspect_rast*pi)/180)
 asp_sin_rast = sin((aspect_rast*pi)/180)
 
-lead_htop_rast = terra::mask(lead_htop_rast, vect(aoi_sf))
 elev_rast = terra::mask(elev_rast, vect(aoi_sf))
 slope_rast = terra::mask(slope_rast, vect(aoi_sf))
 asp_cos_rast = terra::mask(asp_cos_rast, vect(aoi_sf))
 asp_sin_rast = terra::mask(asp_sin_rast, vect(aoi_sf))
+
 species_class_rast = terra::resample(species_class_rast, elev_rast, method="near")
 species_class_rast = terra::mask(species_class_rast, elev_rast)
 plot(species_class_rast, main = "species_class")
@@ -78,12 +117,16 @@ slope = raster::raster("./Data/Raster_Covariates/UnMasked/slope_raster.tif")
 asp_cos = raster::raster("./Data/Raster_Covariates/UnMasked/asp_cos_raster.tif")
 asp_sin = raster::raster("./Data/Raster_Covariates/UnMasked/asp_sin_raster.tif")
 
-# Derive CHM-based covariates: ForestTools Pipe
-kernel <- matrix(1,3,3)
+# Derive CHM-based covariates: ForestTools Pipeline
 lead_htop_raster_1m = raster::raster("./Data/Raster_Covariates/lead_htop_raster.tif")
 lead_htop_rast_1m = terra::rast(lead_htop_raster_1m)
+terra::crs(lead_htop_rast_1m) = "epsg:3005"
+lead_htop_rast_1m = terra::mask(lead_htop_rast_1m, vect(aoi_sf))
 lead_htop_rast_1m_smoothed = terra::focal(lead_htop_rast_1m, w = kernel, fun = median, na.rm = TRUE)
 lead_htop_raster_1m_smoothed = raster::raster(lead_htop_rast_1m_smoothed)
+plot(lead_htop_rast_1m_smoothed)
+
+kernel <- matrix(1,3,3)
 wf_Quan<-function(x){ 
   a=0.179-0.1
   b=0.51+0.5 
@@ -132,45 +175,24 @@ raster::writeRaster(stemsha_L_ttops_20cell, filename = "./Data/Raster_Covariates
 raster::writeRaster(stemsha_L_ttops_50cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_50cell.tif", overwrite=TRUE)
 raster::writeRaster(stemsha_L_ttops_100cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_100cell.tif", overwrite=TRUE)
 
-lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_100cell.tif")
-stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_100cell.tif")
+lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_20cell.tif")
+stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_20cell.tif")
 
 # Derive CHM-based covariates: lidR Pipeline
-lead_htop_raster_1m = raster::raster("./Data/Raster_Covariates/lead_htop_raster.tif")
-lead_htop_rast_1m = terra::rast(lead_htop_raster_1m)
-crs(lead_htop_rast_1m) = "epsg:3005"
-lead_htop_rast_20m = terra::aggregate(lead_htop_rast_1m, fact = 20, fun = mean)
-lead_htop_rast_20m = terra::focal(lead_htop_rast_20m, w = kernel, fun = median, na.rm = TRUE)
-lead_htop_raster_20m = raster::raster(lead_htop_rast_20m)
-ttops_Quan_lidR_find_trees_20m = lidR::find_trees(lead_htop_rast_20m, lmf(wf_Quan)) #SpatialPointsDataFrame object
-ttops_Quan_lidR_locate_trees_20m = lidR::locate_trees(lead_htop_rast_20m, lmf(wf_Quan)) #SimpleFeatures object
+opt_output_files(lead_htop_rast_1m_smoothed) = paste0(tempdir(), "./Data/lead_htop_stemMapping")
+opt_output_files(lead_htop_raster_1m_smoothed) = paste0(tempdir(), "./Data/lead_htop_stemMapping")
 
-lead_htop_rast_2m = terra::aggregate(lead_htop_rast_1m, fact = 2, fun = mean)
-crs(lead_htop_rast_2m) = "epsg:3005"
-lead_htop_rast_1m = terra::focal(lead_htop_rast_1m, w = kernel, fun = median, na.rm = TRUE)
-lead_htop_rast_2m = terra::focal(lead_htop_rast_2m, w = kernel, fun = median, na.rm = TRUE)
-lead_htop_raster_1m = raster::raster(lead_htop_rast_1m)
-lead_htop_raster_2m = raster::raster(lead_htop_rast_2m)
+ttops_Quan_lidR_find_trees = lidR::find_trees(lead_htop_rast_1m_smoothed, lmf(wf_Quan)) #SpatialPointsDataFrame object
+ttops_Quan_lidR_locate_trees = lidR::locate_trees(lead_htop_rast_1m_smoothed, lmf(wf_Quan)) #SimpleFeatures object
+ttops_2m_Quan_sf = st_as_sf(ttops_2m_Quan)
 
-ttops_Quan_lidR_find_trees = lidR::find_trees(lead_htop_raster_1m, lmf(wf_Quan)) #SpatialPointsDataFrame object
-ttops_Quan_lidR_locate_trees = lidR::locate_trees(lead_htop_raster_2m, lmf(wf_Quan)) #SimpleFeatures object
-ttops_Quan_lidR_find_trees_gridStats_20cell = ForestTools::sp_summarise(ttops_Quan_lidR_find_trees, grid = 20, variables = "Z", statFuns = custFuns)
-lead_htop_raster_lidR-FT_20cell = ttops_Quan_lidR_find_trees_gridStats_20cell[["Z95thQuantile"]]
+st_transform(ttops_2m_Quan_sf, 3005)
+st_crs(ttops_2m_Quan_sf)
+crs(lead_htop_rast_1m_smoothed) = 'epsg:9001'
+lead_htop_raster_1m_smoothed = raster::raster(lead_htop_raster_1m_smoothed)
+lead_htop_raster_1m_smoothed_memory = readAll(lead_htop_raster_1m_smoothed)
+crowns_Quan_lidR_locate_trees = lidR::li2012(lead_htop_raster_1m_smoothed_memory, ttops_2m_Quan_sf)()
 
-stemsha_L_raster_lidR-FT_20cell <- sp_summarise(ttops_Quan_lidR_find_trees, grid = 20)
-stemsha_L_raster_lidR-FT_50cell <- sp_summarise(ttops_Quan_lidR_find_trees, grid = 50)
-stemsha_L_raster_lidR-FT_100cell <- sp_summarise(ttops_Quan_lidR_find_trees, grid = 100)
-
-stemsha_L_rast_lidR_sf_20cell = terra::rasterize(vect(ttops_Quan_lidR_locate_trees), elev_raster, fun = length, touches = TRUE)
-stemsha_L_rast_lidR_sf_50cell = terra::rasterize(vect(ttops_Quan_lidR_locate_trees), elev_raster, fun = length, touches = TRUE)
-stemsha_L_rast_lidR_sf_100cell = terra::rasterize(vect(ttops_Quan_lidR_locate_trees), elev_raster, fun = length, touches = TRUE)
-stemsha_L_raster_lidR_sf_20cell = raster::raster(stemsha_L_rast_lidR_sf_20cell)
-stemsha_L_raster_lidR_sf_50cell = raster::raster(stemsha_L_rast_lidR_sf_50cell)
-stemsha_L_raster_lidR_sf_100cell = raster::raster(stemsha_L_rast_lidR_sf_100cell)
-
-algo = lidR::dalponte2016(lead_htop_raster_2m, ttops_Quan_lidR_locate_trees)
-crowns_Quan_lidR_locate_trees = algo()
-crowns_Quan_lidR_locate_trees
 crowns_Quan_lidR_locate_trees_sv = terra::as.points(crowns_Quan_lidR_locate_trees)
 stemsha_L_rast_lidR_segmented_20cell = terra::rasterize(crowns_Quan_lidR_locate_trees_sv, lead_htop_20, fun = length, touches = TRUE)
 stemsha_L_rast_lidR_segmented_50cell = terra::rasterize(crowns_Quan_lidR_locate_trees_sv, lead_htop_50, fun = length, touches = TRUE)
@@ -178,9 +200,7 @@ stemsha_L_rast_lidR_segmented_100cell = terra::rasterize(crowns_Quan_lidR_locate
 stemsha_L_raster_lidR_segmented_20cell = raster::raster(stemsha_L_rast_lidR_segmented_20cell)
 stemsha_L_raster_lidR_segmented_50cell = raster::raster(stemsha_L_rast_lidR_segmented_50cell)
 stemsha_L_raster_lidR_segmented_100cell = raster::raster(stemsha_L_rast_lidR_segmented_100cell)
-
 writeRaster(lead_htop_rast, filename = "./Data/Raster_Covariates/UnMasked/lead_htop_rast.tif", overwrite=TRUE)
-
 
 # Tidy raster covariates
 lead_htop_rast = terra::rast(lead_htop)
@@ -191,11 +211,11 @@ asp_cos_rast = terra::rast(asp_cos)
 asp_sin_rast = terra::rast(asp_sin)
 species_class_rast = terra::rast(species_class)
 
-elev_rast = terra::aggregate(elev_rast, fact = 5, fun = mean)
-slope_rast = terra::aggregate(slope_rast, fact = 5, fun = mean)
-asp_cos_rast = terra::aggregate(asp_cos_rast, fact = 5, fun = mean)
-asp_sin_rast = terra::aggregate(asp_sin_rast, fact = 5, fun = mean)
-species_class_rast = terra::aggregate(species_class_rast, fact = 5, fun = mean)
+#elev_rast = terra::aggregate(elev_rast, fact = 5, fun = mean)
+#slope_rast = terra::aggregate(slope_rast, fact = 5, fun = mean)
+#asp_cos_rast = terra::aggregate(asp_cos_rast, fact = 5, fun = mean)
+#asp_sin_rast = terra::aggregate(asp_sin_rast, fact = 5, fun = mean)
+#species_class_rast = terra::aggregate(species_class_rast, fact = 5, fun = mean)
 
 lead_htop_rast = terra::mask(lead_htop_rast, vect(aoi_sf))
 stemsha_L_rast = terra::mask(stemsha_L_rast, vect(aoi_sf))
@@ -222,14 +242,21 @@ asp_sin_rast = mask(asp_sin_rast, lead_htop_rast, inverse=FALSE)
 species_class_rast = mask(species_class_rast, lead_htop_rast, inverse=FALSE)
 stemsha_L_rast = mask(stemsha_L_rast, lead_htop_rast, inverse=FALSE)
 
-plot(lead_htop_rast)
-plot(species_class_rast)
 lead_htop_rast = mask(lead_htop_rast, species_class_rast, inverse=FALSE)
 elev_rast = mask(elev_rast, species_class_rast, inverse=FALSE)
 slope_rast = mask(slope_rast, species_class_rast, inverse=FALSE)
 asp_cos_rast = mask(asp_cos_rast, species_class_rast, inverse=FALSE)
 asp_sin_rast = mask(asp_sin_rast, species_class_rast, inverse=FALSE)
 stemsha_L_rast = mask(stemsha_L_rast, species_class_rast, inverse=FALSE)
+
+masks_rast = terra::resample(masks_rast, lead_htop_rast, method="near")
+lead_htop_rast = mask(lead_htop_rast, masks_rast, inverse=TRUE)
+elev_rast = mask(elev_rast, masks_rast, inverse=TRUE)
+slope_rast = mask(slope_rast, masks_rast, inverse=TRUE)
+asp_cos_rast = mask(asp_cos_rast, masks_rast, inverse=TRUE)
+asp_sin_rast = mask(asp_sin_rast, masks_rast, inverse=TRUE)
+stemsha_L_rast = mask(stemsha_L_rast, masks_rast, inverse=TRUE)
+species_class_rast = mask(species_class_rast, masks_rast, inverse=TRUE)
 
 names(elev_rast) = "elev"
 names(slope_rast) = "slope"
@@ -258,10 +285,8 @@ names(covs_m2)
 
 # Tidy ground plot data
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
-faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "SB" | spc_live1 == "SE" | 
-  spc_live1 == "SX" | spc_live1 == "FD" | spc_live1 == "CW" | spc_live1 == "HW" | spc_live1 == "BL")
-faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, 
-  PL = 0, SB = 1, SE = 1, SX = 1, FD = 2, CW = 3, HW = 4, BL = 5)
+faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "PLI" | spc_live1 == "SB" | spc_live1 == "SE" | spc_live1 == "SX")
+faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 0, PLI = 0, SB = 1, SE = 1, SX = 1)
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
 
@@ -313,18 +338,19 @@ tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,
   tunecontrol = tune.control(cross = 10),preProcess = c("BoxCox","center","scale"))
 
 tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
-save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_mar30.RData")
+save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_mar31.RData")
 
 # writeRaster and plot outputs
 tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
-writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_mar30.tif", overwrite=TRUE)
-model1_svmRadial = raster::raster("./Results/model1_svmRadial_mar30.tif")
+writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_mar31.tif", overwrite=TRUE)
+model1_svmRadial = raster::raster("./Results/model1_svmRadial_mar31.tif")
 plot(model1_svmRadial)
+plot(masks_rast)
 
 
 tunedModel_svm_m2_to_raster_masked <- raster::predict(covs_m2, tunedModel_svm_m2_full)
-writeRaster(tunedModel_svm_m2_to_raster_masked, filename = "./Results/model1_svmRadial_mar30_masked.tif", overwrite=TRUE)
-model1_svmRadial_masked = raster::raster("./Results/model1_svmRadial_mar30_masked.tif")
+writeRaster(tunedModel_svm_m2_to_raster_masked, filename = "./Results/model1_svmRadial_mar31_masked.tif", overwrite=TRUE)
+model1_svmRadial_masked = raster::raster("./Results/model1_svmRadial_mar31_masked.tif")
 plot(model1_svmRadial_masked)
 
 
