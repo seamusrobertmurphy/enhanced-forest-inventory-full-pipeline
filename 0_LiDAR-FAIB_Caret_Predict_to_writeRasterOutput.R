@@ -345,13 +345,11 @@ tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
 writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_mar31.tif", overwrite=TRUE)
 model1_svmRadial = raster::raster("./Results/model1_svmRadial_mar31.tif")
 plot(model1_svmRadial)
-plot(masks_rast)
 
-
-tunedModel_svm_m2_to_raster_masked <- raster::predict(covs_m2, tunedModel_svm_m2_full)
-writeRaster(tunedModel_svm_m2_to_raster_masked, filename = "./Results/model1_svmRadial_mar31_masked.tif", overwrite=TRUE)
-model1_svmRadial_masked = raster::raster("./Results/model1_svmRadial_mar31_masked.tif")
-plot(model1_svmRadial_masked)
+par(mfrow=c(1,2))
+graphics.off()
+hist(model1_svmRadial, main="Whole Stem Vol (raster)", maxpixels=22000000) 
+rasterVis::densityplot(model1_svmRadial, main="Whole Stem Vol (raster)")
 
 
 
