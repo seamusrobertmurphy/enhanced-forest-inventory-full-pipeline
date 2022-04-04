@@ -24,12 +24,14 @@ aoi_sf = dplyr::rename(aoi_sf, AOI_Boundary = SHAPE)
 aoi_sf = aoi_sf[1, "AOI_Boundary"]
 plot(aoi_sf)
 
+getwd()
+
 # Import VRI & Mask layers
 vri_sf = sf::read_sf("./Data/VEG_COMP_LYR_R1_POLY/VEG_R1_PLY_polygon.shp")
 vri_species = vri_sf[c("SPEC_CD_1", "SPEC_PCT_1")]
 vri_species_aoi = st_intersection(st_make_valid(vri_species), aoi_sf)
-vri_species_aoi =  dplyr::filter(vri_species_aoi, SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX' | SPEC_CD_1=='FD' | SPEC_CD_1=='FDI')
-vri_species_aoi_df = as_tibble(vri_species_aoi[!(vri_species_aoi_df$SPEC_CD_1 == 'FD' & vri_species_aoi_df$SPEC_PCT_1 >= 50 | vri_species_aoi_df$SPEC_CD_1 == 'FDI' & vri_species_aoi_df$SPEC_PCT_1 >=50),])
+vri_species_aoi_df =  dplyr::filter(vri_species_aoi, SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX' | SPEC_CD_1=='FD' | SPEC_CD_1=='FDI')
+vri_species_aoi_df = as_tibble(vri_species_aoi_df[!(vri_species_aoi_df$SPEC_CD_1 == 'FD' & vri_species_aoi_df$SPEC_PCT_1 >= 50 | vri_species_aoi_df$SPEC_CD_1 == 'FDI' & vri_species_aoi_df$SPEC_PCT_1 >=50),])
 vri_species_aoi_df$SPEC_CD_1 = dplyr::recode(vri_species_aoi_df$SPEC_CD_1, PL = 0, PLI = 0, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2)
 vri_species_aoi_df = dplyr::rename(vri_species_aoi_df, species_class = SPEC_CD_1)
 vri_species_aoi_df$species_class = as.factor(vri_species_aoi_df$species_class)
@@ -37,8 +39,9 @@ vri_species_aoi = sf::st_as_sf(vri_species_aoi_df)
 vri_species_aoi = vri_species_aoi["species_class"]
 raster_template = rast(ext(aoi_sf), resolution = 10, crs = st_crs(aoi_sf)$wkt) # template for rasterization
 species_class_rast = terra::rasterize(vect(vri_species_aoi), raster_template, field = "species_class", touches = TRUE)
+species_class_raster = raster::raster(species_class_rast)
+writeRaster(species_class_raster, filename = "./Data/Raster_Covariates/UnMasked/species_class_raster.tif", overwrite=TRUE)
 plot(species_class_rast, main = "species_class_raster")
-writeRaster(species_class_rast, filename = "./Data/Raster_Covariates/UnMasked/species_class_raster.tif", overwrite=TRUE)
 
 mask_burn2017 = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/TCC_Burn_Severity TCC_Burn_Severity_2017.shp")
 mask_burn2017 = mask_burn2017["BurnSev"]
@@ -80,15 +83,16 @@ masks_df = full_join(as_tibble(masks_sf), as_tibble(mask_roads_tcc), as_tibble(m
 masks_sf = st_as_sf(masks_df)
 ggplot(masks_sf) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
 masks_rast = rasterize(vect(masks_sf), raster_template, touches = TRUE)
-plot(masks_rast)
-writeRaster(masks_rast, filename = "./Data/Raster_Covariates/UnMasked/masks_raster.tif", overwrite=TRUE)
+masks_raster = raster::raster(masks_rast)
+writeRaster(masks_raster, filename = "./Data/Raster_Covariates/UnMasked/masks_raster.tif", overwrite=TRUE)
 masks_raster = raster::raster("./Data/Raster_Covariates/UnMasked/masks_raster.tif")
+plot(masks_rast)
 
 # Import LiDAR and derive DEM-based covariates
 elev_raster = raster::raster("./Data/Raster_Covariates/elev_raster.tif")
 elev_rast = terra::rast(elev_raster)
 terra::crs(elev_rast) = "epsg:3005"
-elev_rast = terra::aggregate(elev_rast, fact = 10, fun = mean)
+elev_rast = terra::aggregate(elev_rast, fact = 100, fun = mean)
 
 slope_rast = terra::terrain(elev_rast, v="slope", unit="degrees", neighbors=8)
 aspect_rast = terra::terrain(elev_rast, v="aspect", unit="degrees", neighbors=8)
@@ -188,8 +192,8 @@ raster::writeRaster(stemsha_L_ttops_20cell, filename = "./Data/Raster_Covariates
 raster::writeRaster(stemsha_L_ttops_50cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_50cell.tif", overwrite=TRUE)
 raster::writeRaster(stemsha_L_ttops_100cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_100cell.tif", overwrite=TRUE)
 
-lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_10cell.tif")
-stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_10cell.tif")
+lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_100cell.tif")
+stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_100cell.tif")
 
 # Derive CHM-based covariates: lidR Pipeline
 #opt_output_files(lead_htop_rast_1m_smoothed) = paste0(tempdir(), "./Data/lead_htop_stemMapping")
@@ -292,9 +296,6 @@ covs_m2 = stack(
   species_class_raster)
 names(covs_m2)
 
-vri_species_aoi =  dplyr::filter(vri_species_aoi, SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX' | SPEC_CD_1=='FD' | SPEC_CD_1=='FDI')
-vri_species_aoi_df = as_tibble(vri_species_aoi[!(vri_species_aoi_df$SPEC_CD_1 == 'FD' & vri_species_aoi_df$SPEC_PCT_1 >= 50 | vri_species_aoi_df$SPEC_CD_1 == 'FDI' & vri_species_aoi_df$SPEC_PCT_1 >=50),])
-vri_species_aoi_df$SPEC_CD_1 = dplyr::recode(vri_species_aoi_df$SPEC_CD_1, PL = 0, PLI = 0, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2)
 
 # Tidy ground plot data
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
@@ -351,32 +352,25 @@ tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,
   tunecontrol = tune.control(cross = 10),preProcess = c("BoxCox","center","scale"))
 
 tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
-save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_10m_april04.tif")
+save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_100m_april04.tif")
 
 # writeRaster and plot outputs
 tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
-writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_10m_april04.tif", overwrite=TRUE)
-model1_svmRadial = raster::raster("./Results/model1_svmRadial_10m_april04.tif")
-plot(model1_svmRadial)
+writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_100m_april04.tif", overwrite=TRUE)
+model1_svmRadial_100cell = raster::raster("./Results/model1_svmRadial_100m_april04.tif")
+plot(model1_svmRadial_100cell)
+hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster)", maxpixels=22000000) 
+rasterVis::densityplot(model1_svmRadial_100cell, main="Whole Stem Vol (raster)")
 
-par(mfrow=c(1,2))
-graphics.off()
-hist(model1_svmRadial, main="Whole Stem Vol (raster)", maxpixels=22000000) 
-rasterVis::densityplot(model1_svmRadial, main="Whole Stem Vol (raster)")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+model1_svmRadial_positives_100cell = model1_svmRadial_100cell > 0
+writeRaster(model1_svmRadial_positives_100cell, filename = "./Results/model1_svmRadial_100m_positives_april04.tif", overwrite=TRUE)
+model1_svmRadial_positives_100cell = raster::raster("./Results/model1_svmRadial_100m_positives_april04.tif")
+model1_svmRadial_100cell_rast = terra::rast(model1_svmRadial_100cell)
+model1_svmRadial_positives_100cell_rast = terra::rast(model1_svmRadial_positives_100cell)
+model1_svmRadial_positives_only_100cell = terra::mask(model1_svmRadial_positives_100cell_rast, model1_svmRadial_positives_100cell_rast, inverse=FALSE)
+writeRaster(model1_svmRadial_positives_only_100cell, filename = "./Results/model1_svmRadial_positives_only_100cell_april04.tif", overwrite=TRUE)
+model1_svmRadial_positives_only_100cell = raster::raster("./Results/model1_svmRadial_positives_only_100cell_april04.tif")
+plot(model1_svmRadial_positives_100cell)
 
 
 
