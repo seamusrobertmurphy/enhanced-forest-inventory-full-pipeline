@@ -26,19 +26,19 @@ plot(aoi_sf)
 
 # Import VRI & Mask layers
 vri_sf = sf::read_sf("./Data/VEG_COMP_LYR_R1_POLY/VEG_R1_PLY_polygon.shp")
-vri_species_aoi = vri_sf["SPEC_CD_1"]
-vri_species_aoi = st_intersection(st_make_valid(vri_species_aoi), aoi_sf)
-vri_species_aoi =  dplyr::filter(vri_species_aoi, SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX')
-vri_species_aoi = dplyr::rename(vri_species_aoi, species_class = SPEC_CD_1)
-vri_species_aoi$species_class = dplyr::recode(vri_species_aoi$species_class, PL = 0, PLI = 0, SE = 1, SW = 1, SX = 1)
-vri_species_aoi$species_class = as.factor(vri_species_aoi$species_class)
-summary.factor(vri_species_aoi$species_class)
+vri_species = vri_sf[c("SPEC_CD_1", "SPEC_PCT_1")]
+vri_species_aoi = st_intersection(st_make_valid(vri_species), aoi_sf)
+vri_species_aoi =  dplyr::filter(vri_species_aoi, SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX' | SPEC_CD_1=='FD' | SPEC_CD_1=='FDI')
+vri_species_aoi_df = as_tibble(vri_species_aoi[!(vri_species_aoi_df$SPEC_CD_1 == 'FD' & vri_species_aoi_df$SPEC_PCT_1 >= 50 | vri_species_aoi_df$SPEC_CD_1 == 'FDI' & vri_species_aoi_df$SPEC_PCT_1 >=50),])
+vri_species_aoi_df$SPEC_CD_1 = dplyr::recode(vri_species_aoi_df$SPEC_CD_1, PL = 0, PLI = 0, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2)
+vri_species_aoi_df = dplyr::rename(vri_species_aoi_df, species_class = SPEC_CD_1)
+vri_species_aoi_df$species_class = as.factor(vri_species_aoi_df$species_class)
+vri_species_aoi = sf::st_as_sf(vri_species_aoi_df)
 vri_species_aoi = vri_species_aoi["species_class"]
-raster_template = rast(ext(aoi_sf), resolution = 20, crs = st_crs(aoi_sf)$wkt) # template for rasterization
-species_class_rast = rasterize(vect(vri_species_aoi), raster_template, field = "species_class", touches = TRUE)
+raster_template = rast(ext(aoi_sf), resolution = 10, crs = st_crs(aoi_sf)$wkt) # template for rasterization
+species_class_rast = terra::rasterize(vect(vri_species_aoi), raster_template, field = "species_class", touches = TRUE)
 plot(species_class_rast, main = "species_class_raster")
 writeRaster(species_class_rast, filename = "./Data/Raster_Covariates/UnMasked/species_class_raster.tif", overwrite=TRUE)
-
 
 mask_burn2017 = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/TCC_Burn_Severity TCC_Burn_Severity_2017.shp")
 mask_burn2017 = mask_burn2017["BurnSev"]
@@ -81,12 +81,14 @@ masks_sf = st_as_sf(masks_df)
 ggplot(masks_sf) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
 masks_rast = rasterize(vect(masks_sf), raster_template, touches = TRUE)
 plot(masks_rast)
+writeRaster(masks_rast, filename = "./Data/Raster_Covariates/UnMasked/masks_raster.tif", overwrite=TRUE)
+masks_raster = raster::raster("./Data/Raster_Covariates/UnMasked/masks_raster.tif")
 
 # Import LiDAR and derive DEM-based covariates
 elev_raster = raster::raster("./Data/Raster_Covariates/elev_raster.tif")
 elev_rast = terra::rast(elev_raster)
 terra::crs(elev_rast) = "epsg:3005"
-elev_rast = terra::aggregate(elev_rast, fact = 20, fun = mean)
+elev_rast = terra::aggregate(elev_rast, fact = 10, fun = mean)
 
 slope_rast = terra::terrain(elev_rast, v="slope", unit="degrees", neighbors=8)
 aspect_rast = terra::terrain(elev_rast, v="aspect", unit="degrees", neighbors=8)
@@ -117,7 +119,7 @@ slope = raster::raster("./Data/Raster_Covariates/UnMasked/slope_raster.tif")
 asp_cos = raster::raster("./Data/Raster_Covariates/UnMasked/asp_cos_raster.tif")
 asp_sin = raster::raster("./Data/Raster_Covariates/UnMasked/asp_sin_raster.tif")
 
-# Derive CHM-based covariates: ForestTools Pipeline
+# Import LiDAR and derive CHM-based covariates: ForestTools Pipeline
 lead_htop_raster_1m = raster::raster("./Data/Raster_Covariates/lead_htop_raster.tif")
 lead_htop_rast_1m = terra::rast(lead_htop_raster_1m)
 terra::crs(lead_htop_rast_1m) = "epsg:3005"
@@ -151,56 +153,63 @@ plot(ttops_2m_Quan, cex = 0.0001, pch=19, col = 'blue', alpha=0.4)
 plot(crowns_2mTO1.5m_Quan, col = sample(rainbow(50), length(unique(crowns_2mTO1.5m_Quan[])), replace = TRUE), legend = FALSE)
 plot(crownsPoly_2mTO1.5m_Quan, border = "blue", lwd = 0.001)
 
-quant95 <- function(x, ...) quantile(x, c(.95), na.rm = TRUE)
+quant95 <- function(x, ...) 
+  quantile(x, c(0.95), na.rm = TRUE)
 custFuns <- list(quant95, max)
 names(custFuns) <- c("95thQuantile", "Max")
 
+ttops_2m_Quan_raster_2m1.5m_95th_1cell <- ForestTools::sp_summarise(ttops_2m_Quan, grid = 1, variables = "height", statFuns = custFuns)
+ttops_2m_Quan_raster_2m1.5m_95th_10cell <- ForestTools::sp_summarise(ttops_2m_Quan, grid = 10, variables = "height", statFuns = custFuns)
 ttops_2m_Quan_raster_2m1.5m_95th_20cell <- ForestTools::sp_summarise(ttops_2m_Quan, grid = 20, variables = "height", statFuns = custFuns)
 ttops_2m_Quan_raster_2m1.5m_95th_50cell <- ForestTools::sp_summarise(ttops_2m_Quan, grid = 50, variables = "height", statFuns = custFuns)
 ttops_2m_Quan_raster_2m1.5m_95th_100cell <- ForestTools::sp_summarise(ttops_2m_Quan, grid = 100, variables = "height", statFuns = custFuns)
 
+lead_htop_ttops_1cell = ttops_2m_Quan_raster_2m1.5m_95th_1cell[["height95thQuantile"]]
+lead_htop_ttops_10cell = ttops_2m_Quan_raster_2m1.5m_95th_10cell[["height95thQuantile"]]
 lead_htop_ttops_20cell = ttops_2m_Quan_raster_2m1.5m_95th_20cell[["height95thQuantile"]]
 lead_htop_ttops_50cell = ttops_2m_Quan_raster_2m1.5m_95th_50cell[["height95thQuantile"]]
 lead_htop_ttops_100cell = ttops_2m_Quan_raster_2m1.5m_95th_100cell[["height95thQuantile"]]
 
+stemsha_L_ttops_1cell = ttops_2m_Quan_raster_2m1.5m_95th_1cell[["TreeCount"]]
+stemsha_L_ttops_10cell = ttops_2m_Quan_raster_2m1.5m_95th_10cell[["TreeCount"]]
 stemsha_L_ttops_20cell = ttops_2m_Quan_raster_2m1.5m_95th_20cell[["TreeCount"]]
 stemsha_L_ttops_50cell = ttops_2m_Quan_raster_2m1.5m_95th_50cell[["TreeCount"]]
 stemsha_L_ttops_100cell = ttops_2m_Quan_raster_2m1.5m_95th_100cell[["TreeCount"]]
 
+raster::writeRaster(lead_htop_ttops_1cell, filename = "./Data/Raster_Covariates/UnMasked/lead_htop_ttops_1cell.tif", overwrite=TRUE)
+raster::writeRaster(lead_htop_ttops_10cell, filename = "./Data/Raster_Covariates/UnMasked/lead_htop_ttops_10cell.tif", overwrite=TRUE)
 raster::writeRaster(lead_htop_ttops_20cell, filename = "./Data/Raster_Covariates/UnMasked/lead_htop_ttops_20cell.tif", overwrite=TRUE)
 raster::writeRaster(lead_htop_ttops_50cell, filename = "./Data/Raster_Covariates/UnMasked/lead_htop_ttops_50cell.tif", overwrite=TRUE)
 raster::writeRaster(lead_htop_ttops_100cell, filename = "./Data/Raster_Covariates/UnMasked/lead_htop_ttops_100cell.tif", overwrite=TRUE)
 
+raster::writeRaster(stemsha_L_ttops_1cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_1cell.tif", overwrite=TRUE)
+raster::writeRaster(stemsha_L_ttops_10cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_10cell.tif", overwrite=TRUE)
 raster::writeRaster(stemsha_L_ttops_20cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_20cell.tif", overwrite=TRUE)
 raster::writeRaster(stemsha_L_ttops_50cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_50cell.tif", overwrite=TRUE)
 raster::writeRaster(stemsha_L_ttops_100cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_100cell.tif", overwrite=TRUE)
 
-lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_20cell.tif")
-stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_20cell.tif")
+lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_10cell.tif")
+stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_10cell.tif")
 
 # Derive CHM-based covariates: lidR Pipeline
-opt_output_files(lead_htop_rast_1m_smoothed) = paste0(tempdir(), "./Data/lead_htop_stemMapping")
-opt_output_files(lead_htop_raster_1m_smoothed) = paste0(tempdir(), "./Data/lead_htop_stemMapping")
+#opt_output_files(lead_htop_rast_1m_smoothed) = paste0(tempdir(), "./Data/lead_htop_stemMapping")
+#opt_output_files(lead_htop_raster_1m_smoothed) = paste0(tempdir(), "./Data/lead_htop_stemMapping")
 
-ttops_Quan_lidR_find_trees = lidR::find_trees(lead_htop_rast_1m_smoothed, lmf(wf_Quan)) #SpatialPointsDataFrame object
-ttops_Quan_lidR_locate_trees = lidR::locate_trees(lead_htop_rast_1m_smoothed, lmf(wf_Quan)) #SimpleFeatures object
-ttops_2m_Quan_sf = st_as_sf(ttops_2m_Quan)
+#ttops_Quan_lidR_find_trees = lidR::find_trees(lead_htop_rast_1m_smoothed, lmf(wf_Quan)) #SpatialPointsDataFrame object
+#ttops_Quan_lidR_locate_trees = lidR::locate_trees(lead_htop_rast_1m_smoothed, lmf(wf_Quan)) #SimpleFeatures object
+#ttops_2m_Quan_sf = st_as_sf(ttops_2m_Quan)
 
-st_transform(ttops_2m_Quan_sf, 3005)
-st_crs(ttops_2m_Quan_sf)
-crs(lead_htop_rast_1m_smoothed) = 'epsg:9001'
-lead_htop_raster_1m_smoothed = raster::raster(lead_htop_raster_1m_smoothed)
-lead_htop_raster_1m_smoothed_memory = readAll(lead_htop_raster_1m_smoothed)
-crowns_Quan_lidR_locate_trees = lidR::li2012(lead_htop_raster_1m_smoothed_memory, ttops_2m_Quan_sf)()
+#lead_htop_raster_1m_smoothed_memory = readAll(lead_htop_raster_1m_smoothed)
+#crowns_Quan_lidR_locate_trees = lidR::li2012(lead_htop_raster_1m_smoothed_memory, ttops_2m_Quan_sf)()
 
-crowns_Quan_lidR_locate_trees_sv = terra::as.points(crowns_Quan_lidR_locate_trees)
-stemsha_L_rast_lidR_segmented_20cell = terra::rasterize(crowns_Quan_lidR_locate_trees_sv, lead_htop_20, fun = length, touches = TRUE)
-stemsha_L_rast_lidR_segmented_50cell = terra::rasterize(crowns_Quan_lidR_locate_trees_sv, lead_htop_50, fun = length, touches = TRUE)
-stemsha_L_rast_lidR_segmented_100cell = terra::rasterize(crowns_Quan_lidR_locate_trees_sv, lead_htop_100, fun = length, touches = TRUE)
-stemsha_L_raster_lidR_segmented_20cell = raster::raster(stemsha_L_rast_lidR_segmented_20cell)
-stemsha_L_raster_lidR_segmented_50cell = raster::raster(stemsha_L_rast_lidR_segmented_50cell)
-stemsha_L_raster_lidR_segmented_100cell = raster::raster(stemsha_L_rast_lidR_segmented_100cell)
-writeRaster(lead_htop_rast, filename = "./Data/Raster_Covariates/UnMasked/lead_htop_rast.tif", overwrite=TRUE)
+#crowns_Quan_lidR_locate_trees_sv = terra::as.points(crowns_Quan_lidR_locate_trees)
+#stemsha_L_rast_lidR_segmented_20cell = terra::rasterize(crowns_Quan_lidR_locate_trees_sv, lead_htop_20, fun = length, touches = TRUE)
+#stemsha_L_rast_lidR_segmented_50cell = terra::rasterize(crowns_Quan_lidR_locate_trees_sv, lead_htop_50, fun = length, touches = TRUE)
+#stemsha_L_rast_lidR_segmented_100cell = terra::rasterize(crowns_Quan_lidR_locate_trees_sv, lead_htop_100, fun = length, touches = TRUE)
+#stemsha_L_raster_lidR_segmented_20cell = raster::raster(stemsha_L_rast_lidR_segmented_20cell)
+#stemsha_L_raster_lidR_segmented_50cell = raster::raster(stemsha_L_rast_lidR_segmented_50cell)
+#stemsha_L_raster_lidR_segmented_100cell = raster::raster(stemsha_L_rast_lidR_segmented_100cell)
+#writeRaster(lead_htop_rast, filename = "./Data/Raster_Covariates/UnMasked/lead_htop_rast.tif", overwrite=TRUE)
 
 # Tidy raster covariates
 lead_htop_rast = terra::rast(lead_htop)
@@ -283,10 +292,14 @@ covs_m2 = stack(
   species_class_raster)
 names(covs_m2)
 
+vri_species_aoi =  dplyr::filter(vri_species_aoi, SPEC_CD_1=='PL' | SPEC_CD_1=='PLI' | SPEC_CD_1=='SE' | SPEC_CD_1=='SW' | SPEC_CD_1=='SX' | SPEC_CD_1=='FD' | SPEC_CD_1=='FDI')
+vri_species_aoi_df = as_tibble(vri_species_aoi[!(vri_species_aoi_df$SPEC_CD_1 == 'FD' & vri_species_aoi_df$SPEC_PCT_1 >= 50 | vri_species_aoi_df$SPEC_CD_1 == 'FDI' & vri_species_aoi_df$SPEC_PCT_1 >=50),])
+vri_species_aoi_df$SPEC_CD_1 = dplyr::recode(vri_species_aoi_df$SPEC_CD_1, PL = 0, PLI = 0, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2)
+
 # Tidy ground plot data
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
-faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "PLI" | spc_live1 == "SB" | spc_live1 == "SE" | spc_live1 == "SX")
-faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 0, PLI = 0, SB = 1, SE = 1, SX = 1)
+faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "PLI" | spc_live1 == "SB" | spc_live1 == "SE" | spc_live1 == "SX" | spc_live1 == "FD" | spc_live1 == "FDI")
+faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 0, PLI = 0, SB = 1, SE = 1, SX = 1, FD = 2, FDI = 2)
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
 
@@ -338,12 +351,12 @@ tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,
   tunecontrol = tune.control(cross = 10),preProcess = c("BoxCox","center","scale"))
 
 tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
-save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_mar31.RData")
+save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_10m_april04.tif")
 
 # writeRaster and plot outputs
 tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
-writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_mar31.tif", overwrite=TRUE)
-model1_svmRadial = raster::raster("./Results/model1_svmRadial_mar31.tif")
+writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_10m_april04.tif", overwrite=TRUE)
+model1_svmRadial = raster::raster("./Results/model1_svmRadial_10m_april04.tif")
 plot(model1_svmRadial)
 
 par(mfrow=c(1,2))
