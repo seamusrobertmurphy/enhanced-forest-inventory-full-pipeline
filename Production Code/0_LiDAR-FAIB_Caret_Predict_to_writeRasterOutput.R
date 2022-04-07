@@ -192,8 +192,8 @@ raster::writeRaster(stemsha_L_ttops_20cell, filename = "./Data/Raster_Covariates
 raster::writeRaster(stemsha_L_ttops_50cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_50cell.tif", overwrite=TRUE)
 raster::writeRaster(stemsha_L_ttops_100cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_100cell.tif", overwrite=TRUE)
 
-lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_10cell.tif")
-stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_10cell.tif")
+lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_100cell.tif")
+stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_100cell.tif")
 
 # Derive CHM-based covariates: lidR Pipeline
 #opt_output_files(lead_htop_rast_1m_smoothed) = paste0(tempdir(), "./Data/lead_htop_stemMapping")
@@ -296,12 +296,13 @@ covs_m2 = stack(
   species_class_raster)
 names(covs_m2)
 
+#faib_psp = faib_psp[!(faib_psp$SPEC_PCT_1 == 'FD' & faib_psp$SPEC_PCT_1 >= 50 | faib_psp$SPEC_CD_1 == 'FDI' & faib_psp$SPEC_PCT_1 >=50),])
+
 
 # Tidy ground plot data
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
 faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "PLI" | spc_live1 == "SB" | spc_live1 == "SE" | spc_live1 == "SX" | spc_live1 == "FD" | spc_live1 == "FDI")
 faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 0, PLI = 0, SB = 1, SE = 1, SX = 1, FD = 2, FDI = 2)
-#faib_psp = faib_psp[!(faib_psp$SPEC_PCT_1 == 'FD' & faib_psp$SPEC_PCT_1 >= 50 | faib_psp$SPEC_CD_1 == 'FDI' & faib_psp$SPEC_PCT_1 >=50),])
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
 faib_vri_true_m1_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
@@ -323,6 +324,7 @@ faib_psp$species_class = as.numeric(faib_psp$species_class)
 faib_psp$elev = as.numeric(faib_psp$elev)
 print(as_tibble(faib_vri_true_m1_df), n = 10)
 print(as_tibble(faib_vri_true_m2_df), n = 10)
+
 
 n <- nrow(faib_vri_true_m1_df)
 frac <- 0.8
@@ -354,6 +356,7 @@ tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,
 tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
 save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_100m_april04.tif")
 
+
 # writeRaster and plot outputs
 tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
 writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_100m_april04.tif", overwrite=TRUE)
@@ -374,5 +377,28 @@ plot(model1_svmRadial_positives_100cell)
 
 
 
+par(mfrow = c(4, 4)) 
+truehist(faib_vri_true_m1_df$elev, main="DEM (faib)", maxpixels=22000000)
+hist(elev, main="DEM (raster)", maxpixels=22000000)
+truehist(faib_vri_true_m1_df$slope, main="Slope (faib)", maxpixels=22000000)
+hist(slope, main="Slope (raster)", maxpixels=22000000) 
+truehist(faib_vri_true_m1_df$asp_cos, main="Northness (faib)", maxpixels=22000000)
+hist(asp_cos, main="Northness (raster)", maxpixels=22000000)
+truehist(faib_vri_true_m1_df$asp_sin, main="Eastness (faib)", maxpixels=22000000)
+hist(asp_sin, main="Eastness (raster)", maxpixels=22000000)
+truehist(faib_vri_true_m1_df$stemsha_L, main="Stems/ha (faib)", maxpixels=22000000)
+hist(stemsha_L, main="Stems/ha (raster)", maxpixels=22000000)
+truehist(faib_vri_true_m1_df$species_class, main="Lead Species (faib)", maxpixels=22000000)
+hist(species_class, main="Lead Species (raster)", maxpixels=22000000)
+truehist(faib_vri_true_m1_df$lead_htop, main="Mean Tree Height (faib)", maxpixels=22000000)
+hist(lead_htop, main="Mean Tree Height (raster)", maxpixels=22000000) 
+truehist(faib_vri_true_m1_df$wsvha_L, main="Whole Stem Vol (faib)", maxpixels=22000000)
+hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster)", maxpixels=22000000) 
 
-
+par(mfrow = c(1, 3)) 
+tunedModel_svm_m2 = predict(
+  tunedModel_svm_m2_full,
+  X_m2, y_m2)
+hist(faib_vri_true_m1_df$wsvha_L, main="Whole Stem Vol (faib fitted)", maxpixels=22000000)
+hist(tunedModel_svm_m2, main="Whole Stem Vol (faib predicted)")
+hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster predicted)", maxpixels=22000000) 
