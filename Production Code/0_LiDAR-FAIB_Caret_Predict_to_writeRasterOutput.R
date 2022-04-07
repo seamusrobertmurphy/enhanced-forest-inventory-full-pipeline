@@ -36,10 +36,11 @@ vri_species_aoi_df = dplyr::rename(vri_species_aoi_df, species_class = SPEC_CD_1
 vri_species_aoi_df$species_class = as.factor(vri_species_aoi_df$species_class)
 vri_species_aoi = sf::st_as_sf(vri_species_aoi_df)
 vri_species_aoi = vri_species_aoi["species_class"]
-raster_template = rast(ext(aoi_sf), resolution = 10, crs = st_crs(aoi_sf)$wkt) # template for rasterization
+raster_template = rast(ext(aoi_sf), resolution = 100, crs = st_crs(aoi_sf)$wkt) # template for rasterization
 species_class_rast = terra::rasterize(vect(vri_species_aoi), raster_template, field = "species_class", touches = TRUE)
 species_class_raster = raster::raster(species_class_rast)
 writeRaster(species_class_raster, filename = "./Data/Raster_Covariates/UnMasked/species_class_raster.tif", overwrite=TRUE)
+species_class_raster = raster::raster("./Data/Raster_Covariates/UnMasked/species_class_raster.tif")
 plot(species_class_rast, main = "species_class_raster")
 
 mask_burn2017 = sf::read_sf("./Data/Seamus_20220330/Seamus_20220330/TCC_Burn_Severity TCC_Burn_Severity_2017.shp")
@@ -191,8 +192,8 @@ raster::writeRaster(stemsha_L_ttops_20cell, filename = "./Data/Raster_Covariates
 raster::writeRaster(stemsha_L_ttops_50cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_50cell.tif", overwrite=TRUE)
 raster::writeRaster(stemsha_L_ttops_100cell, filename = "./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_100cell.tif", overwrite=TRUE)
 
-lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_100cell.tif")
-stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_100cell.tif")
+lead_htop = raster::raster("./Data/Raster_Covariates/UnMasked/lead_htop_ttops_10cell.tif")
+stemsha_L = raster::raster("./Data/Raster_Covariates/UnMasked/stemsha_L_ttops_10cell.tif")
 
 # Derive CHM-based covariates: lidR Pipeline
 #opt_output_files(lead_htop_rast_1m_smoothed) = paste0(tempdir(), "./Data/lead_htop_stemMapping")
@@ -300,9 +301,9 @@ names(covs_m2)
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
 faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "PLI" | spc_live1 == "SB" | spc_live1 == "SE" | spc_live1 == "SX" | spc_live1 == "FD" | spc_live1 == "FDI")
 faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 0, PLI = 0, SB = 1, SE = 1, SX = 1, FD = 2, FDI = 2)
+#faib_psp = faib_psp[!(faib_psp$SPEC_PCT_1 == 'FD' & faib_psp$SPEC_PCT_1 >= 50 | faib_psp$SPEC_CD_1 == 'FDI' & faib_psp$SPEC_PCT_1 >=50),])
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
-
 faib_vri_true_m1_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
 faib_vri_true_m2_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "wsvha_L")] 
 faib_vri_true_m1_df$lead_htop[faib_vri_true_m1_df$lead_htop < 1.3] = NA
