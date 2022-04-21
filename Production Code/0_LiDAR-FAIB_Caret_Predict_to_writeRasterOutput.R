@@ -13,6 +13,7 @@ library(lidR)
 library(e1071)
 library(caret)
 library(tibble)
+library(MASS)
 
 # Import ground plot data
 faib_psp <- utils::read.csv("./Data/FAIB_PSP_20211028.csv")
@@ -301,7 +302,8 @@ names(covs_m2)
 
 # Tidy ground plot data
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
-faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "PLI" | spc_live1 == "SB" | spc_live1 == "SE" | spc_live1 == "SX" | spc_live1 == "FD" | spc_live1 == "FDI")
+summary.factor(faib_psp$spc_live1)
+faib_psp = subset(faib_psp, spc_live1 == "PL" | spc_live1 == "PL" | spc_live1 == "PLI" | spc_live1 == "SB" | spc_live1 == "SE" | spc_live1 == "SX" | spc_live1 == "FD" | spc_live1 == "FDI")
 faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 0, PLI = 0, SB = 1, SE = 1, SX = 1, FD = 2, FDI = 2)
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
@@ -349,56 +351,98 @@ y_m1 = faib_vri_true_m1_df[,8]
 X_m2 = faib_vri_true_m2_df[,-7]
 y_m2 = faib_vri_true_m2_df[,7]
 
-# fit models: model1_svmRadial
+# fit models: model1_svmRadial (data transformations: boxcox, center, scale)
 tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),
   tunecontrol = tune.control(cross = 10),preProcess = c("BoxCox","center","scale"))
-
 tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
 save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_100m_april04.tif")
-
-
 # writeRaster and plot outputs
 tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
 writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_100m_april04.tif", overwrite=TRUE)
 model1_svmRadial_100cell = raster::raster("./Results/model1_svmRadial_100m_april04.tif")
 plot(model1_svmRadial_100cell)
-hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster)", maxpixels=22000000) 
-rasterVis::densityplot(model1_svmRadial_100cell, main="Whole Stem Vol (raster)")
+hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ boxcox, centre, scale)", maxpixels=22000000) 
+rasterVis::densityplot(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ boxcox, centre, scale)")
 
-model1_svmRadial_positives_100cell = model1_svmRadial_100cell > 0
-writeRaster(model1_svmRadial_positives_100cell, filename = "./Results/model1_svmRadial_100m_positives_april04.tif", overwrite=TRUE)
-model1_svmRadial_positives_100cell = raster::raster("./Results/model1_svmRadial_100m_positives_april04.tif")
-model1_svmRadial_100cell_rast = terra::rast(model1_svmRadial_100cell)
-model1_svmRadial_positives_100cell_rast = terra::rast(model1_svmRadial_positives_100cell)
-model1_svmRadial_positives_only_100cell = terra::mask(model1_svmRadial_positives_100cell_rast, model1_svmRadial_positives_100cell_rast, inverse=FALSE)
-writeRaster(model1_svmRadial_positives_only_100cell, filename = "./Results/model1_svmRadial_positives_only_100cell_april04.tif", overwrite=TRUE)
-model1_svmRadial_positives_only_100cell = raster::raster("./Results/model1_svmRadial_positives_only_100cell_april04.tif")
-plot(model1_svmRadial_positives_100cell)
+# fit models: model1_svmRadial (data transformations: boxcox)
+tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),
+  tunecontrol = tune.control(cross = 10),preProcess = c("BoxCox"))
+tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
+save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_100m_boxcox_april21.tif")
+# writeRaster and plot outputs
+tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
+writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_100m_boxcox_april21.tif", overwrite=TRUE)
+model1_svmRadial_100cell = raster::raster("./Results/model1_svmRadial_100m_boxcox_april21.tif")
+plot(model1_svmRadial_100cell)
+hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ boxcox)", maxpixels=22000000) 
+rasterVis::densityplot(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ boxcox)")
+
+# fit models: model1_svmRadial (data transformations: center)
+tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),
+                               tunecontrol = tune.control(cross = 10),preProcess = c("center"))
+tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
+save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_100m_center_april21.tif")
+# writeRaster and plot outputs
+tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
+writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_100m_center_april21.tif", overwrite=TRUE)
+model1_svmRadial_100cell = raster::raster("./Results/model1_svmRadial_100m_center_april21.tif")
+plot(model1_svmRadial_100cell)
+hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ center)", maxpixels=22000000) 
+rasterVis::densityplot(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ center)")
+
+# fit models: model1_svmRadial (data transformations: scale)
+tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),
+                               tunecontrol = tune.control(cross = 10),preProcess = c("scale"))
+tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
+save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_100m_scale_april21.tif")
+# writeRaster and plot outputs
+tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
+writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_100m_scale_april21.tif", overwrite=TRUE)
+model1_svmRadial_100cell = raster::raster("./Results/model1_svmRadial_100m_scale_april21.tif")
+plot(model1_svmRadial_100cell)
+hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ scale)", maxpixels=22000000) 
+rasterVis::densityplot(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ scale)")
 
 
 
 par(mfrow = c(4, 4)) 
-truehist(faib_vri_true_m1_df$elev, main="DEM (faib)", maxpixels=22000000)
-hist(elev, main="DEM (raster)", maxpixels=22000000)
+truehist(faib_vri_true_m1_df$elev, main="Elevation (faib)", maxpixels=22000000)
+hist(elev_raster, main="Elevation (raster)", maxpixels=22000000)
 truehist(faib_vri_true_m1_df$slope, main="Slope (faib)", maxpixels=22000000)
-hist(slope, main="Slope (raster)", maxpixels=22000000) 
+hist(slope_raster, main="Slope (raster)", maxpixels=22000000) 
 truehist(faib_vri_true_m1_df$asp_cos, main="Northness (faib)", maxpixels=22000000)
-hist(asp_cos, main="Northness (raster)", maxpixels=22000000)
+hist(asp_cos_raster, main="Northness (raster)", maxpixels=22000000)
 truehist(faib_vri_true_m1_df$asp_sin, main="Eastness (faib)", maxpixels=22000000)
-hist(asp_sin, main="Eastness (raster)", maxpixels=22000000)
+hist(asp_sin_raster, main="Eastness (raster)", maxpixels=22000000)
 truehist(faib_vri_true_m1_df$stemsha_L, main="Stems/ha (faib)", maxpixels=22000000)
-hist(stemsha_L, main="Stems/ha (raster)", maxpixels=22000000)
+hist(stemsha_L_raster, main="Stems/ha (raster)", maxpixels=22000000)
 truehist(faib_vri_true_m1_df$species_class, main="Lead Species (faib)", maxpixels=22000000)
-hist(species_class, main="Lead Species (raster)", maxpixels=22000000)
+hist(species_class_raster, main="Lead Species (raster)", maxpixels=22000000)
 truehist(faib_vri_true_m1_df$lead_htop, main="Mean Tree Height (faib)", maxpixels=22000000)
-hist(lead_htop, main="Mean Tree Height (raster)", maxpixels=22000000) 
-truehist(faib_vri_true_m1_df$wsvha_L, main="Whole Stem Vol (faib)", maxpixels=22000000)
-hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster)", maxpixels=22000000) 
-
-par(mfrow = c(1, 3)) 
+hist(lead_htop_raster, main="Mean Tree Height (raster)", maxpixels=22000000) 
 tunedModel_svm_m2 = predict(
   tunedModel_svm_m2_full,
   X_m2, y_m2)
+truehist(tunedModel_svm_m2, main="Whole Stem Vol (faib predicted)")
+hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster predicted)", maxpixels=22000000) 
+
+par(mfrow = c(1, 3)) 
 hist(faib_vri_true_m1_df$wsvha_L, main="Whole Stem Vol (faib fitted)", maxpixels=22000000)
 hist(tunedModel_svm_m2, main="Whole Stem Vol (faib predicted)")
-hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster predicted)", maxpixels=22000000) 
+hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster predicted w/ scale)", maxpixels=22000000) 
+
+
+
+# generate mask to normalize negative estimates
+model1_svmRadial_positives_100cell_mask = model1_svmRadial_100cell > 0
+writeRaster(model1_svmRadial_positives_100cell_mask, filename = "./Results/model1_svmRadial_100m_positives_mask_april04.tif", overwrite=TRUE)
+model1_svmRadial_positives_100cell_mask = raster::raster("./Results/model1_svmRadial_100m_positives_mask_april04.tif")
+plot(model1_svmRadial_positives_100cell_mask)
+# mask WSVHA raster with 'positives' mask above
+#model1_svmRadial_100cell_rast = terra::rast(model1_svmRadial_100cell)
+#model1_svmRadial_positives_100cell_rast = terra::rast(model1_svmRadial_positives_100cell)
+#model1_svmRadial_positives_only_100cell = terra::mask(model1_svmRadial_positives_100cell_rast, model1_svmRadial_positives_100cell_rast, inverse=FALSE)
+#writeRaster(model1_svmRadial_positives_only_100cell, filename = "./Results/model1_svmRadial_positives_only_100cell_april04.tif", overwrite=TRUE)
+#model1_svmRadial_positives_only_100cell = raster::raster("./Results/model1_svmRadial_positives_only_100cell_april04.tif")
+#plot(model1_svmRadial_positives_100cell)
+#plot(model1_svmRadial_positives_only_100cell)
