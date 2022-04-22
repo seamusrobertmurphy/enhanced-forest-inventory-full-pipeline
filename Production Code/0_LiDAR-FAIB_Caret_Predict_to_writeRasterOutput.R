@@ -300,11 +300,13 @@ names(covs_m2)
 
 # Tidy ground plot data
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
-summary.factor(faib_psp$spc_live1)
 base::table(faib_psp$spc_live1, faib_psp$beclabel)
-faib_psp =  dplyr::filter(faib_psp, spc_live1=='PL' | spc_live1=='SB' | spc_live1=='SE' | spc_live1=='SX' | spc_live1=='FD')
-faib_psp = as_tibble(faib_psp[!(faib_psp$spc_live1  == 'FD' & faib_psp$bgc_zone == 'SBS' | faib_psp$spc_live1 == 'FD' & faib_psp$bgc_zone =='SBPS' | faib_psp$spc_live1 == 'FD' & faib_psp$beclabel =='ICHmk3' | faib_psp$spc_live1 == 'FD' & faib_psp$beclabel =='ICHwk2'),])
+faib_psp =  subset(faib_psp, spc_live1=='PL' | spc_live1=='SB' | spc_live1=='SE' | spc_live1=='SX' | spc_live1=='FD')
 faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 0, SB = 1, SE = 1, SX = 1, FD = 2)
+faib_psp = faib_psp[!(faib_psp$species_class==2 & faib_psp$bgc_zone == 'SBS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='SBPS'),]
+# | faib_psp$species_class==2 & faib_psp$bgc_zone =='ICH' | faib_psp$species_class==2 & faib_psp$beclabel =='IDFdw' | faib_psp$species_class==2 & faib_psp$beclabel =='IDFxm'),]
+base::table(faib_psp$species_class, faib_psp$beclabel)
+
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
 faib_vri_true_m1_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
@@ -355,11 +357,15 @@ y_m2 = faib_vri_true_m2_df[,7]
 tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2, ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),
   tunecontrol = tune.control(cross = 10),preProcess = c("BoxCox","center","scale"))
 tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
-save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_100m_april04.tif")
+save(tunedModel_svm_m2_full, file = "./Models/model1_svmRadial_100m_april21.tif")
+tunedModel_svm_m2 = predict(
+  tunedModel_svm_m2_full,
+  data=faib_vri_true_m2_df)
+
 # writeRaster and plot outputs
 tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tunedModel_svm_m2_full)
-writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_100m_april04.tif", overwrite=TRUE)
-model1_svmRadial_100cell = raster::raster("./Results/model1_svmRadial_100m_april04.tif")
+writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_100m_april21.tif", overwrite=TRUE)
+model1_svmRadial_100cell = raster::raster("./Results/model1_svmRadial_100m_april21.tif")
 graphics.off()
 par(mfrow = c(1,2))
 plot(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ boxcox, centre, scale)")
@@ -383,9 +389,6 @@ truehist(faib_vri_true_m1_df$species_class, main="Lead Species (faib)", maxpixel
 hist(species_class_raster, main="Lead Species (raster)", maxpixels=22000000)
 truehist(faib_vri_true_m1_df$lead_htop, main="Mean Tree Height (faib)", maxpixels=22000000)
 hist(lead_htop_raster, main="Mean Tree Height (raster)", maxpixels=22000000) 
-tunedModel_svm_m2 = predict(
-  tunedModel_svm_m2_full,
-  X_m2, y_m2)
 truehist(tunedModel_svm_m2, main="Whole Stem Vol (faib predicted)")
 hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster predicted)", maxpixels=22000000) 
 
@@ -396,6 +399,7 @@ hist(tunedModel_svm_m2, main="Whole Stem Vol (faib predicted)")
 hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster predicted)", maxpixels=22000000) 
 
 
+# Applying new caret pre-processing transformations:
 
 
 
