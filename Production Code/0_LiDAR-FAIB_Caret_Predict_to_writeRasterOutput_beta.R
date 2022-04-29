@@ -197,15 +197,12 @@ covs_m1 = stack(
 names(covs_m2)
 names(covs_m1)
 
-#faib_psp = faib_psp[!(faib_psp$SPEC_PCT_1 == 'FD' & faib_psp$SPEC_PCT_1 >= 50 | faib_psp$SPEC_CD_1 == 'FDI' & faib_psp$SPEC_PCT_1 >=50),])
-
 # Tidy ground plot data
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
 base::table(faib_psp$spc_live1, faib_psp$beclabel)
 faib_psp =  subset(faib_psp, spc_live1=='PL' | spc_live1=='SB' | spc_live1=='SE' | spc_live1=='SX' | spc_live1=='FD')
 faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 0, SB = 1, SE = 1, SX = 1, FD = 2)
 faib_psp = faib_psp[!(faib_psp$species_class==2 & faib_psp$bgc_zone == 'SBS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='SBPS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='ICH'),]
-# | faib_psp$species_class==2 & faib_psp$beclabel =='IDFdw' | faib_psp$species_class==2 & faib_psp$beclabel =='IDFxm'),]
 base::table(faib_psp$species_class, faib_psp$beclabel)
 
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
@@ -260,23 +257,82 @@ fitControl_YeoJx1 = caret::trainControl(method="repeatedcv", number=10, repeats=
 fitControl_YeoJx3 = caret::trainControl(method="repeatedcv", number=10, repeats=3)
 
 tuneResult_svm_m2_full <- train(wsvha_L~., data=faib_vri_true_m2_df,
-                                trControl = fitControl_YeoJx1,
-                                method = 'svmRadial',
-                                metric = 'RMSE',
-                                tuneLength = 10,
-                                preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
-                                verbose=F)
+  trControl = fitControl_YeoJx1,
+  method = 'svmRadial',
+  metric = 'RMSE',
+  tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  verbose=F)
+
+tuneResult_svm_m1_full <- train(wsvha_L~., data=faib_vri_true_m1_df,
+  trControl = fitControl_YeoJx1,
+  method = 'svmRadial',
+  metric = 'RMSE',
+  tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  verbose=F)
 
 tunedModel_svm_m2_full <- tuneResult_svm_m2_full$finalModel
+tunedModel_svm_m1_full <- tuneResult_svm_m1_full$finalModel
 tunedModel_svm_m2_to_raster <- raster::predict(covs_m2, tuneResult_svm_m2_full)
+tunedModel_svm_m1_to_raster <- raster::predict(covs_m1, tuneResult_svm_m1_full)
 save(tunedModel_svm_m2_full, file = "./Models/tunedModel_svmRadial_m2_10k.RData")
+save(tunedModel_svm_m1_full, file = "./Models/tunedModel_svmRadial_m1_10k.RData")
 writeRaster(tunedModel_svm_m2_to_raster, filename = "./Results/model1_svmRadial_100m_combo3_april28.tif", overwrite=TRUE)
+writeRaster(tunedModel_svm_m1_to_raster, filename = "./Results/model2_svmRadial_100m_combo3_april28.tif", overwrite=TRUE)
 print(tunedModel_svm_m2_full)
+print(tunedModel_svm_m1_full)
 
-par(mfrow = c(1,2))
+par(mfrow = c(2,2))
 model1_svmRadial_100cell = raster::raster("./Results/model1_svmRadial_100m_combo3_april28.tif")
+model2_svmRadial_100cell = raster::raster("./Results/model2_svmRadial_100m_combo3_april28.tif")
 plot(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ centre, scale, corr, YeoJohnson)", cex.main=0.8)
+plot(model2_svmRadial_100cell, main="Whole Stem Vol (raster w/ centre, scale, corr, YeoJohnson)", cex.main=0.8)
 hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ centre, scale, corr, YeoJohnson)", cex.main=0.8, maxpixels=22000000) 
+hist(model2_svmRadial_100cell, main="Whole Stem Vol (raster w/ centre, scale, corr, YeoJohnson)", cex.main=0.8, maxpixels=22000000) 
 rasterVis::densityplot(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ boxcox)")
+rasterVis::densityplot(model2_svmRadial_100cell, main="Whole Stem Vol (raster w/ boxcox)")
+
+tuneResult_svmRadial_m2_10k_train <- train(X_train_m2, y_train_m2,
+  trControl = fitControl_YeoJx1,
+  method = 'svmRadial',
+  metric = 'RMSE',
+  tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  verbose=F)
+
+tuneResult_svmRadial_m1_10k_train <- train(X_train_m1, y_train_m1,
+  trControl = fitControl_YeoJx1,
+  method = 'svmRadial',
+  metric = 'RMSE',
+  tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  verbose=F)
+
+tunedModel_svmRadial_m2_test = predict(tuneResult_svmRadial_m2_10k_train, data = test_m2)
+tunedModel_svmRadial_m1_test = predict(tuneResult_svmRadial_m1_10k_train, data = test_m1)
+tunedModel_svmRadial_m2_test_MAE = MAE(tunedModel_svmRadial_m2_test, test_m2$wsvha_L)
+tunedModel_svmRadial_m1_test_MAE = MAE(tunedModel_svmRadial_m1_test, test_m1$wsvha_L)
+tunedModel_svmRadial_m2_test_RMSE = RMSE(tunedModel_svmRadial_m2_test, test_m2$wsvha_L)
+tunedModel_svmRadial_m1_test_RMSE = RMSE(tunedModel_svmRadial_m1_test, test_m1$wsvha_L)
+
+tunedModel_svmRadial_m2 = predict(tuneResult_svm_m2_full, data = faib_vri_true_m2_df)
+tunedModel_svmRadial_m1 = predict(tuneResult_svm_m1_full, data = faib_vri_true_m1_df)
+tunedModel_svmRadial_m2_MAE = MAE(tunedModel_svmRadial_m2, faib_vri_true_m2_df$wsvha_L)
+tunedModel_svmRadial_m1_MAE = MAE(tunedModel_svmRadial_m1, faib_vri_true_m1_df$wsvha_L)
+tunedModel_svmRadial_m2_RMSE = RMSE(tunedModel_svmRadial_m2, faib_vri_true_m2_df$wsvha_L)
+tunedModel_svmRadial_m1_RMSE = RMSE(tunedModel_svmRadial_m1, faib_vri_true_m1_df$wsvha_L)
+
+tunedModel_svmRadial_m2_test_MAE
+tunedModel_svmRadial_m1_test_MAE
+tunedModel_svmRadial_m2_test_RMSE
+tunedModel_svmRadial_m1_test_RMSE
+
+tunedModel_svmRadial_m2_MAE
+tunedModel_svmRadial_m1_MAE
+tunedModel_svmRadial_m2_RMSE 
+tunedModel_svmRadial_m1_RMSE 
+tunedModel_svmRadial_m2_RMSE/tunedModel_svmRadial_m2_test_RMSE
+tunedModel_svmRadial_m1_RMSE/tunedModel_svmRadial_m1_test_RMSE
 
 
