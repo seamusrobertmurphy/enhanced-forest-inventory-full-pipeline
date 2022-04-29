@@ -291,7 +291,7 @@ plot(model2_svmRadial_100cell, main="Model2 WITH-STEMS (Combo3)", cex.main=0.8)
 hist(model1_svmRadial_100cell, main="Model1 NO-STEMS (Combo3)", cex.main=0.8, maxpixels=22000000) 
 hist(model2_svmRadial_100cell, main="Model2 WITH-STEMS (Combo3)", cex.main=0.8, maxpixels=22000000) 
 rasterVis::densityplot(model1_svmRadial_100cell, main="Model1 NO-STEMS (Combo3)")
-rasterVis::densityplot(model2_svmRadial_100cell, main="Model1 WITH-STEMS (Combo3))")
+rasterVis::densityplot(model2_svmRadial_100cell, main="Model2 WITH-STEMS (Combo3))")
 
 tuneResult_svmRadial_m2_10k_train <- train(X_train_m2, y_train_m2,
   trControl = fitControl_YeoJx1,
