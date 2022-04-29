@@ -286,12 +286,12 @@ print(tunedModel_svm_m1_full)
 par(mfrow = c(2,2))
 model1_svmRadial_100cell = raster::raster("./Results/model1_svmRadial_100m_combo3_april28.tif")
 model2_svmRadial_100cell = raster::raster("./Results/model2_svmRadial_100m_combo3_april28.tif")
-plot(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ centre, scale, corr, YeoJohnson)", cex.main=0.8)
-plot(model2_svmRadial_100cell, main="Whole Stem Vol (raster w/ centre, scale, corr, YeoJohnson)", cex.main=0.8)
-hist(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ centre, scale, corr, YeoJohnson)", cex.main=0.8, maxpixels=22000000) 
-hist(model2_svmRadial_100cell, main="Whole Stem Vol (raster w/ centre, scale, corr, YeoJohnson)", cex.main=0.8, maxpixels=22000000) 
-rasterVis::densityplot(model1_svmRadial_100cell, main="Whole Stem Vol (raster w/ boxcox)")
-rasterVis::densityplot(model2_svmRadial_100cell, main="Whole Stem Vol (raster w/ boxcox)")
+plot(model1_svmRadial_100cell, main="Model1 NO-STEMS (Combo3)", cex.main=0.9)
+plot(model2_svmRadial_100cell, main="Model2 WITH-STEMS (Combo3)", cex.main=0.8)
+hist(model1_svmRadial_100cell, main="Model1 NO-STEMS (Combo3)", cex.main=0.8, maxpixels=22000000) 
+hist(model2_svmRadial_100cell, main="Model2 WITH-STEMS (Combo3)", cex.main=0.8, maxpixels=22000000) 
+rasterVis::densityplot(model1_svmRadial_100cell, main="Model1 NO-STEMS (Combo3)")
+rasterVis::densityplot(model2_svmRadial_100cell, main="Model1 WITH-STEMS (Combo3))")
 
 tuneResult_svmRadial_m2_10k_train <- train(X_train_m2, y_train_m2,
   trControl = fitControl_YeoJx1,
