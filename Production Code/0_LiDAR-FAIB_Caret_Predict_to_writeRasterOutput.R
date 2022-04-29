@@ -306,9 +306,14 @@ base::table(faib_psp$spc_live1, faib_psp$beclabel)
 faib_psp =  subset(faib_psp, spc_live1=='PL' | spc_live1=='SB' | spc_live1=='SE' | spc_live1=='SX' | spc_live1=='FD')
 faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 0, SB = 1, SE = 1, SX = 1, FD = 2)
 faib_psp = faib_psp[!(faib_psp$species_class==2 & faib_psp$bgc_zone == 'SBS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='SBPS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='ICH'),]
-# | faib_psp$species_class==2 & faib_psp$beclabel =='IDFdw' | faib_psp$species_class==2 & faib_psp$beclabel =='IDFxm'),]
 base::table(faib_psp$species_class, faib_psp$beclabel)
-
+faib_psp$elev = as.numeric(faib_psp$elev)
+class(faib_psp$elev)
+summary(faib_psp$elev)
+faib_psp$elev[faib_psp$elev < 0] = NA
+summary(faib_psp$elev)
+faib_psp <- faib_psp %>%
+  mutate(elev_pos = if_else(elev ))
 faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
 faib_vri_true_m1_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
@@ -506,3 +511,180 @@ plot(model1_svmRadial_positives_100cell_mask)
 #model1_svmRadial_positives_only_100cell = raster::raster("./Results/model1_svmRadial_positives_only_100cell_april04.tif")
 #plot(model1_svmRadial_positives_100cell)
 #plot(model1_svmRadial_positives_only_100cell)
+
+
+
+
+summary(tuneResult_GLM_m2_full, penalty = 8, gamma=0)
+summary(tuneResult_GLM_m2_full, penalty = 8, gamma=1)
+tunedModel_GLM_m2
+plot(tuneResult_GLM_m2_full$relaxed)
+plot(tuneResult_glmnet_gamma_m2_cv$relaxed)
+
+#tuneResult_GLM_m1_relaxed = relax.glmnet(
+# tuneResult_GLM_m1_coerced, x=as.matrix(X_m1), y=y_m1)
+#print(tuneResult_GLM_m1_relaxed)
+tuneResult_glmnet_gamma_m2_cv <- cv.glmnet(
+  as.matrix(X_m2), y_m2, gamma=0.91, relax = TRUE)
+print(tuneResult_glmnet_gamma_m2_cv)
+
+
+tuneResult_glmnet_gamma_m2_cv <- glmnet(
+  as.matrix(X_train_m2), y_train_m2, gamma=1)
+
+tuneResult_glmnet_gamma_m2_relax = relax.glmnet(
+  tuneResult_glmnet_gamma_m2_cv, 
+  x=as.matrix(X_train_m2), y_train_m2)
+
+faib_vri_true_m2_df
+
+tuneResult_glmnet_gamma_m2_relax_pre = pre::pre(wsvha_L ~ ., data=faib_vri_true_m2_df, relax = TRUE)
+fit = tuneResult_glmnet_gamma_m2_relax_pre$glmnet.fit$relaxed
+mat = data.frame(lambda.1se = c(fit$lambda.1se, fit$gamma.1se, fit$nzero.1se),
+                 lambda.min = c(fit$lambda.min, fit$gamma.min, fit$nzero.min),
+                 row.names = c("lamda", "gamma", "# of non-zero terms")) %>% mat
+
+summary(tuneResult_glmnet_gamma_m2_relax_pre, penalty = "lambda.min")
+summary(tuneResult_glmnet_gamma_m2_relax_pre, penalty = 8, gamma = 0)
+summary(tuneResult_glmnet_gamma_m2_relax_pre, penalty = 8, gamma = 1)
+
+
+tunedModel_GLM_m2 = predict(tuneResult_glmnet_gamma_m2_cv, newx = as.matrix(X_test_m2)) 
+tunedModel_GLM_m2_MAE = MAE(tunedModel_GLM_m2, y_m2)
+tunedModel_GLM_m2_RMSE = RMSE(tunedModel_GLM_m2, y_m2)
+tunedModel_GLM_m2_MAE
+tunedModel_GLM_m2_RMSE 
+
+
+
+
+
+
+
+
+
+
+# GLM gamma family  https://daviddalpiaz.github.io/r4sl/index.html & https://rpubs.com/kaz_yos/glm-Gamma 
+m2_coefs_I = wsvha_L ~ elev + slope + asp_cos + asp_sin + lead_htop + species_class - 1
+m1_coefs_I = wsvha_L ~ elev + slope + asp_cos + asp_sin + lead_htop + species_class + stemsha_L - 1
+m2_coefs_II = lm(m2_coefs_I, data = faib_vri_true_m2_df)
+m1_coefs_II = lm(m1_coefs_I, data = faib_vri_true_m1_df)
+coefplot::coefplot(m2_coefs_II, sort='magnitude')
+coefplot::coefplot(m1_coefs_II, sort='magnitude')
+
+#plot the effects of gamma relaxer on coefficients
+tuneResult_glmnet_gamma_m2 <- glmnet(X_m2, y_m2, relax = TRUE)
+print(tuneResult_glmnet_gamma_m2)
+par(mfrow = c(1, 3), mar=c(4,4,5.5,1))
+plot(tuneResult_glmnet_gamma_m2, main = "gamma = 1")
+plot(tuneResult_glmnet_gamma_m2, gamma = 0.5, main = "gamma = 0.5")
+plot(tuneResult_glmnet_gamma_m2, gamma = 0, main = "gamma = 0")
+
+#plot the effects of gamma relaxer on RMSE
+graphics.off()
+tuneResult_glmnet_gamma_m2_cv <- cv.glmnet(as.matrix(X_train_m2), y_train_m2, relax = TRUE)
+plot(tuneResult_glmnet_gamma_m2_cv)
+print(tuneResult_glmnet_gamma_m2_cv)
+
+grid <- expand.grid(.alpha = seq(0, 1, by = 0.2), .lambda = seq(-1,3,0.0125))
+#control <- trainControl(method = "LOOCV")
+tuneResult_GLM_m2_full <- train(
+  X_m2, y_m2,
+  method = 'glmnet',
+  trControl = fitControl_YeoJx1,
+  tuneGrid = grid,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  metric='RMSE')
+tuneResult_GLM_m2_full$bestTune
+tuneResult_GLM_m2_coerced = glmnet(
+  as.matrix(X_m2), y_m2, alpha=1, lambda=0.2375,
+  relax=TRUE)
+
+tuneResult_GLM_m1_full <- caret::train(
+  X_m1, y_m1,
+  method = 'glmnet',
+  trControl = fitControl_YeoJx1,
+  tuneGrid = grid,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  metric='RMSE')
+tuneResult_GLM_m1_full$bestTune
+tuneResult_GLM_m1_coerced = glmnet(
+  as.matrix(X_m1), y_m1, alpha=1, lambda=0.2625, 
+  relax=TRUE)
+
+
+save(tuneResult_GLM_m2_coerced, file = "./Models/tuneResult_GLM_m2_coerced.RData")
+save(tuneResult_GLM_m1_coerced, file = "./Models/tuneResult_GLM_m1_coerced.RData")
+tuneResult_GLM_m2_coerced_to_raster <- raster::predict(covs_m2, tuneResult_GLM_m2_full)
+tuneResult_GLM_m1_coerced_to_raster <- raster::predict(covs_m1, tuneResult_GLM_m1_full)
+writeRaster(tuneResult_GLM_m2_coerced_to_raster, filename = "./Results/model1_glm_gamma_combo3.tif", overwrite=TRUE)
+writeRaster(tuneResult_GLM_m1_coerced_to_raster, filename = "./Results/model2_glm_gamma_combo3.tif", overwrite=TRUE)
+print(tuneResult_GLM_m2_full)
+print(tuneResult_GLM_m1_full)
+
+par(mfrow = c(2,2))
+model1_glmGamma_100cell = raster::raster("./Results/model1_glm_gamma_combo3.tif")
+model2_glmGamma_100cell = raster::raster("./Results/model2_glm_gamma_combo3.tif")
+plot(model1_glmGamma_100cell, main="Model1 NO-STEMS (Combo3 GLM gamma-tuned)", cex.main=0.9)
+plot(model2_glmGamma_100cell, main="Model2 WITH-STEMS (Combo3 GLM gamma-tuned)", cex.main=0.8)
+hist(model1_glmGamma_100cell, main="Model1 NO-STEMS (Combo3 GLM gamma-tuned)", cex.main=0.8, maxpixels=22000000) 
+hist(model2_glmGamma_100cell, main="Model2 WITH-STEMS (Combo3 GLM gamma-tuned)", cex.main=0.8, maxpixels=22000000) 
+rasterVis::densityplot(model1_glmGamma_100cell, main="Model1 NO-STEMS (Combo3 GLM gamma-tuned)")
+rasterVis::densityplot(model2_glmGamma_100cell, main="Model2 WITH-STEMS (Combo3 GLM gamma-tuned)")
+
+#train-fitted
+tuneResult_GLM_m2_full_train <- train(
+  X_train_m2, y_train_m2,
+  method = 'glmnet',
+  trControl = fitControl_YeoJx1,
+  tuneGrid = grid,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  metric='RMSE')
+
+tuneResult_GLM_m1_full_train <- train(
+  X_train_m1, y_train_m1,
+  method = 'glmnet',
+  trControl = fitControl_YeoJx1,
+  tuneGrid = grid,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  metric='RMSE')
+
+tuneResult_GLM_m2_train = glmnet(
+  as.matrix(X_train_m2), y_train_m2,
+  family = "gaussian",
+  alpha=1, lambda=0.2375,
+  relax=TRUE)
+
+tuneResult_GLM_m1_train = glmnet(
+  as.matrix(X_train_m1), y_train_m1,
+  family = "gaussian",
+  alpha=1, lambda=0.2625,
+  relax=TRUE)
+
+
+#test-fitted # tuneResult_GLM_m1_full
+tunedModel_GLM_m2_test = predict(tuneResult_GLM_m2_train, newx = as.matrix(X_test_m2))
+tunedModel_GLM_m1_test = predict(tuneResult_GLM_m1_train, newx = as.matrix(X_test_m1))
+tunedModel_GLM_m2_test_MAE = MAE(tunedModel_GLM_m2_test, y_test_m2)
+tunedModel_GLM_m1_test_MAE = MAE(tunedModel_GLM_m1_test, y_test_m1)
+tunedModel_GLM_m2_test_RMSE = RMSE(tunedModel_GLM_m2_test, y_test_m2)
+tunedModel_GLM_m1_test_RMSE = RMSE(tunedModel_GLM_m1_test, y_test_m1)
+
+tunedModel_GLM_m2 = predict(tuneResult_GLM_m2_coerced, newx = as.matrix(X_m2))
+tunedModel_GLM_m1 = predict(tuneResult_GLM_m1_coerced, newx = as.matrix(X_m1))
+tunedModel_GLM_m2_MAE = MAE(tunedModel_GLM_m2, y_m2)
+tunedModel_GLM_m1_MAE = MAE(tunedModel_GLM_m1, y_m1)
+tunedModel_GLM_m2_RMSE = RMSE(tunedModel_GLM_m2, y_m2)
+tunedModel_GLM_m1_RMSE = RMSE(tunedModel_GLM_m1, y_m1)
+
+tunedModel_GLM_m2_MAE
+tunedModel_GLM_m2_RMSE 
+tunedModel_GLM_m2_test_MAE
+tunedModel_GLM_m2_test_RMSE
+tunedModel_GLM_m2_RMSE/tunedModel_GLM_m2_test_RMSE
+
+tunedModel_GLM_m1_MAE
+tunedModel_GLM_m1_RMSE 
+tunedModel_GLM_m1_test_MAE
+tunedModel_GLM_m1_test_RMSE
+tunedModel_GLM_m1_RMSE/tunedModel_GLM_m1_test_RMSE
