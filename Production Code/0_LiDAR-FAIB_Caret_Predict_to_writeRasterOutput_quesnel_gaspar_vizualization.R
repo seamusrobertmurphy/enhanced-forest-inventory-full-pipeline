@@ -99,8 +99,7 @@ covs_m1_quesnel = raster::stack(
 p1 = levelplot(covs_m1_quesnel, layers=1, margin = list(FUN = median))
 p2 = levelplot(covs_m1_quesnel)
 
-# PLot log scale of rasters
-# The zscaleLog argument controls whether the object will be log transformed before being passed to the panel function. Defaults to ‘NULL’, in which case the Raster* is not transformed. Other possible values are any number that works as a base for taking logarithm, ‘TRUE’ (which is equivalent to 10), and ‘“e”’ (for the natural logarithm). As a side effect, the colorkey is labeled differently. 
+# Plot log scale transformation of rasters using zscaleLog argument and panel function. Defaults to ‘NULL’, in which case the Raster* is not transformed. Other possible values are any number that works as a base for taking logarithm, ‘TRUE’ (which is equivalent to 10), and ‘“e”’ (for the natural logarithm). 
 p3.1 = levelplot(lead_htop_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
 p3.2 = levelplot(stemsha_L_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
 p3.3 = levelplot(elev_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
@@ -109,7 +108,6 @@ p3.5 = levelplot(asp_cos_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE)
 p3.6 = levelplot(asp_sin_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
 p3.7 = levelplot(species_class_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
 
-
 mean_covs_m1_quesnel = raster::cellStats(covs_m1_quesnel, mean)
 p4 = levelplot(covs_m1_quesnel - mean_covs_m1_quesnel, par.settings = RdBuTheme())
 
@@ -117,7 +115,7 @@ p4 = levelplot(covs_m1_quesnel - mean_covs_m1_quesnel, par.settings = RdBuTheme(
 p5.1 = splom(covs_m1_quesnel)
 p5.2 = histogram(covs_m1_quesnel)
 p5.3 = bwplot(covs_m1_quesnel)
-p5.4 = vectorplot(elev_raster_quesnel, par,settings=RdBuTheme())
+p5.4 = vectorplot(elev_raster_quesnel, par.settings=RdBuTheme())
 p5.5 = streamplot(elev_raster_quesnel)
 
 # Import ground plot data
