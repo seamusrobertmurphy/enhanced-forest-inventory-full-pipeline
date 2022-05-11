@@ -7,6 +7,8 @@ Data/
 Results/
 Models/
 Scripts/
+data_quesnel/
+data_gaspard/
 *.csv
 *.tif
 *.zip
