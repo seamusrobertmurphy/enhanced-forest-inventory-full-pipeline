@@ -192,7 +192,7 @@ covs_m1_gaspard = raster::stack(
   asp_sin_raster_gaspard, 
   species_class_raster_gaspard)
 
-covs_m1_gaspard = raster::stack(
+covs_m1 = raster::stack(
   lead_htop_raster,
   stemsha_L_raster,
   elev_raster, 
@@ -208,24 +208,78 @@ p2.1_gaspard = rasterVis::levelplot(covs_m1_gaspard)
 p2.2_quesnel = rasterVis::levelplot(covs_m1_quesnel)
 p2.3_quesnel_gaspard = rasterVis::levelplot(covs_m1_quesnel_gaspard)
 
-# Plot log scale transformation of rasters using zscaleLog argument and panel function. Defaults to ‘NULL’, in which case the Raster* is not transformed. Other possible values are any number that works as a base for taking logarithm, ‘TRUE’ (which is equivalent to 10), and ‘“e”’ (for the natural logarithm). 
-rasterVis::levelplot(lead_htop_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-rasterVis::levelplot(stemsha_L_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-rasterVis::levelplot(elev_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-rasterVis::levelplot(slope_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-rasterVis::levelplot(asp_cos_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-rasterVis::levelplot(asp_sin_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-rasterVis::levelplot(species_class_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
 
+# Plot log scale transformation of rasters using zscaleLog argument and panel function. 
+# Defaults to ‘NULL’, in which case the Raster* is not transformed. Other possible 
+# values are any number that works as a base for taking logarithm, ‘TRUE’ (which is 
+# equivalent to 10), and ‘“e”’ (for the natural logarithm). 
+rasterVis::levelplot(lead_htop_raster_gaspard^2, zscaleLog=TRUE) 
+rasterVis::levelplot(stemsha_L_raster_gaspard^2, zscaleLog=TRUE) 
+rasterVis::levelplot(elev_raster_gaspard^2, zscaleLog=TRUE) 
+rasterVis::levelplot(slope_raster_gaspard^2, zscaleLog=TRUE) 
+rasterVis::levelplot(asp_cos_raster_gaspard^2, zscaleLog=TRUE) 
+rasterVis::levelplot(asp_sin_raster_gaspard^2, zscaleLog=TRUE) 
+rasterVis::levelplot(species_class_raster_gaspard^2, zscaleLog=TRUE) 
+
+rasterVis::levelplot(lead_htop_raster_quesnel^2, zscaleLog=TRUE) 
+rasterVis::levelplot(stemsha_L_raster_quesnel^2, zscaleLog=TRUE) 
+rasterVis::levelplot(elev_raster_quesnel^2, zscaleLog=TRUE) 
+rasterVis::levelplot(slope_raster_quesnel^2, zscaleLog=TRUE) 
+rasterVis::levelplot(asp_cos_raster_quesnel^2, zscaleLog=TRUE) 
+rasterVis::levelplot(asp_sin_raster_quesnel^2, zscaleLog=TRUE) 
+rasterVis::levelplot(species_class_raster_quesnel^2, zscaleLog=TRUE) 
+
+rasterVis::levelplot(lead_htop_raster^2, zscaleLog=TRUE) 
+rasterVis::levelplot(stemsha_L_raster^2, zscaleLog=TRUE) 
+rasterVis::levelplot(elev_raster^2, zscaleLog=TRUE) 
+rasterVis::levelplot(slope_raster^2, zscaleLog=TRUE) 
+rasterVis::levelplot(asp_cos_raster^2, zscaleLog=TRUE) 
+rasterVis::levelplot(asp_sin_raster^2, zscaleLog=TRUE) 
+rasterVis::levelplot(species_class_raster^2, zscaleLog=TRUE) 
+
+rasterVis::levelplot(lead_htop_raster_gaspard^2, zscaleLog='e') 
+rasterVis::levelplot(stemsha_L_raster_gaspard^2, zscaleLog='e') 
+rasterVis::levelplot(elev_raster_gaspard^2, zscaleLog='e') 
+rasterVis::levelplot(slope_raster_gaspard^2, zscaleLog='e') 
+rasterVis::levelplot(asp_cos_raster_gaspard^2, zscaleLog='e') 
+rasterVis::levelplot(asp_sin_raster_gaspard^2, zscaleLog='e') 
+rasterVis::levelplot(species_class_raster_gaspard^2, zscaleLog='e') 
+
+rasterVis::levelplot(lead_htop_raster_quesnel^2, zscaleLog='e') 
+rasterVis::levelplot(stemsha_L_raster_quesnel^2, zscaleLog='e') 
+rasterVis::levelplot(elev_raster_quesnel^2, zscaleLog='e') 
+rasterVis::levelplot(slope_raster_quesnel^2, zscaleLog='e') 
+rasterVis::levelplot(asp_cos_raster_quesnel^2, zscaleLog='e') 
+rasterVis::levelplot(asp_sin_raster_quesnel^2, zscaleLog='e') 
+rasterVis::levelplot(species_class_raster_quesnel^2, zscaleLog='e') 
+
+rasterVis::levelplot(lead_htop_raster^2, zscaleLog='e') 
+rasterVis::levelplot(stemsha_L_raster^2, zscaleLog='e') 
+rasterVis::levelplot(elev_raster^2, zscaleLog='e') 
+rasterVis::levelplot(slope_raster^2, zscaleLog='e') 
+rasterVis::levelplot(asp_cos_raster^2, zscaleLog='e') 
+rasterVis::levelplot(asp_sin_raster^2, zscaleLog='e') 
+rasterVis::levelplot(species_class_raster^2, zscaleLog='e') 
+
+mean_covs_m1_gaspard = raster::cellStats(covs_m1_gaspard, mean)
 mean_covs_m1_quesnel = raster::cellStats(covs_m1_quesnel, mean)
-p4 = levelplot(covs_m1_quesnel - mean_covs_m1_quesnel, par.settings = RdBuTheme())
+mean_covs_m1 = raster::cellStats(covs_m1, mean)
+rasterVis::levelplot(covs_m1_gaspard - mean_covs_m1_gaspard, par.settings = RdBuTheme())
+rasterVis::levelplot(covs_m1_quesnel - mean_covs_m1_quesnel, par.settings = RdBuTheme())
+rasterVis::levelplot(covs_m1 - mean_covs_m1, par.settings = RdBuTheme())
 
 # plot scatter matrix and distribution grids
+rasterVis::splom(covs_m1_gaspard)
 rasterVis::splom(covs_m1_quesnel)
+rasterVis::splom(covs_m1)
+
+rasterVis::histogram(covs_m1_gaspard)
 rasterVis::histogram(covs_m1_quesnel)
+rasterVis::histogram(covs_m1)
+
+rasterVis::bwplot(covs_m1_gaspard)
 rasterVis::bwplot(covs_m1_quesnel)
-rasterVis::vectorplot(elev_raster_quesnel, par.settings=RdBuTheme())
-rasterVis::streamplot(elev_raster_quesnel)
+rasterVis::bwplot(covs_m1)
 
 # Import ground plot data
 faib_psp <- read.csv("/media/seamus/128GB_WORKD/EFI-TCC/0_Caret_Predict_to_writeRasterOutput/Data/FAIB_PSP_20211028.csv")
@@ -241,8 +295,8 @@ faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
 faib_vri_true_m1_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
 faib_vri_true_m2_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "wsvha_L")] 
-faib_vri_true_m1_df$lead_htop[faib_vri_true_m1_df$lead_htop < 1.3] = NA
-faib_vri_true_m2_df$lead_htop[faib_vri_true_m2_df$lead_htop < 1.3] = NA
+faib_vri_true_m1_df$lead_htop[faib_vri_true_m1_df$lead_htop < 2] = NA
+faib_vri_true_m2_df$lead_htop[faib_vri_true_m2_df$lead_htop < 2] = NA
 faib_vri_true_m1_df = na.omit(faib_vri_true_m1_df)
 faib_vri_true_m2_df = na.omit(faib_vri_true_m2_df)
 sum(is.na(faib_vri_true_m1_df))
@@ -254,7 +308,7 @@ faib_psp$aspect = as.numeric(faib_psp$aspect)
 faib_psp$asp_cos = as.numeric(faib_psp$asp_cos)
 faib_psp$asp_sin = as.numeric(faib_psp$asp_sin)
 faib_psp$lead_htop = as.numeric(faib_psp$lead_htop)
-faib_psp$species_class = as.numeric(faib_psp$species_class)
+faib_psp$species_class = as.factor(faib_psp$species_class)
 faib_psp$stemsha_L = as.numeric(faib_psp$stemsha_L)
 faib_psp$wsvha_L = as.numeric(faib_psp$wsvha_L)
 print(as_tibble(faib_vri_true_m1_df), n = 10)
@@ -283,6 +337,25 @@ y_m1 = faib_vri_true_m1_df[,8]
 X_m2 = faib_vri_true_m2_df[,-7]
 y_m2 = faib_vri_true_m2_df[,7]
 
+# fit models: model1_svmRadial (with BoxCox and YeoJohnson transformations)
+fitControl_YeoJx1 = caret::trainControl(method="repeatedcv", number=10, repeats=1)
+fitControl_YeoJx3 = caret::trainControl(method="repeatedcv", number=10, repeats=3)
+formula_glm = y_m1 ~ X_m1
+
+tuneResult_GLM_m1_full <- train(
+  formula = y_m1 ~ X_m1, 
+  data=faib_vri_true_m1_df,
+  method = 'glm',
+  family = Gamma(link = "log"),
+  trControl = fitControl_YeoJx1,
+  tuneGrid = grid,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  metric='RMSE')
+
+tuneResult_GLM_m2_full$bestTune
+tuneResult_GLM_m2_coerced = glmnet(
+  as.matrix(X_m2), y_m2, alpha=1, lambda=0.425,
+  relax = TRUE)
 
 # compare rasters with faib permanent sample plot data
 library(MASS)
