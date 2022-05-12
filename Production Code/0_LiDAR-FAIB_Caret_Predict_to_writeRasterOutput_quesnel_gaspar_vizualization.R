@@ -7,6 +7,8 @@ library(sf)
 library(terra)
 library(raster)
 library(rasterVis)
+library(lattice)
+library(latticeExtra)
 library(ggplot2)
 library(dplyr)
 library(caret)
@@ -44,26 +46,22 @@ asp_cos_rast_quesnel = terra::rast(asp_cos_raster_quesnel)
 asp_sin_rast_quesnel = terra::rast(asp_sin_raster_quesnel)
 species_class_rast_quesnel = terra::rast(species_class_raster_quesnel)
 
-terra::plot(lead_htop_rast_quesnel, main = "lead_htop")
-terra::plot(stemsha_L_rast_quesnel, main = "stemsha_L")
-terra::plot(elev_rast_quesnel, main = "elevation")
-terra::plot(slope_rast_quesnel, main = "slope")
-terra::plot(asp_cos_rast_quesnel, main = "asp_cos")
-terra::plot(asp_sin_rast_quesnel, main = "asp_sin")
-terra::plot(species_class_rast_quesnel, main = "species_class")
-
-
-
+lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
+stemsha_L_rast_gaspard = terra::rast(stemsha_L_raster_gaspard)
+elev_rast_gaspard = terra::rast(elev_raster_gaspard)
+slope_rast_gaspard = terra::rast(slope_raster_gaspard)
+asp_cos_rast_gaspard = terra::rast(asp_cos_raster_gaspard)
+asp_sin_rast_gaspard = terra::rast(asp_sin_raster_gaspard)
+species_class_rast_gaspard = terra::rast(species_class_raster_gaspard)
 
 lead_htop_rast_quesnel = terra::resample(lead_htop_rast_quesnel, elev_rast_quesnel)
 stemsha_L_rast_quesnel = terra::resample(stemsha_L_rast_quesnel, elev_rast_quesnel)
 species_class_rast_quesnel = terra::resample(species_class_rast_quesnel, elev_rast_quesnel)
 elev_rast_quesnel = terra::mask(elev_rast_quesnel, lead_htop_rast_quesnel)
 slope_rast_quesnel = terra::mask(slope_rast_quesnel, lead_htop_rast_quesnel)
-asp_cos_rast = terra::mask(asp_cos_rast_quesnel, lead_htop_rast_quesnel)
-asp_sin_rast = terra::mask(asp_sin_rast_quesnel, lead_htop_rast_quesnel)
+asp_cos_rast_quesnel = terra::mask(asp_cos_rast_quesnel, lead_htop_rast_quesnel)
+asp_sin_rast_quesnel = terra::mask(asp_sin_rast_quesnel, lead_htop_rast_quesnel)
 species_class_rast_quesnel = terra::mask(species_class_rast_quesnel, lead_htop_rast_quesnel)
-
 lead_htop_rast_quesnel = terra::mask(lead_htop_rast_quesnel, species_class_rast_quesnel, inverse=FALSE)
 elev_rast_quesnel = terra::mask(elev_rast_quesnel, species_class_rast_quesnel, inverse=FALSE)
 slope_rast_quesnel = terra::mask(slope_rast_quesnel, species_class_rast_quesnel, inverse=FALSE)
@@ -71,13 +69,20 @@ asp_cos_rast_quesnel = terra::mask(asp_cos_rast_quesnel, species_class_rast_ques
 asp_sin_rast_quesnel = terra::mask(asp_sin_rast_quesnel, species_class_rast_quesnel, inverse=FALSE)
 stemsha_L_rast_quesnel = terra::mask(stemsha_L_rast_quesnel, species_class_rast_quesnel, inverse=FALSE)
 
-terra::plot(lead_htop_rast_quesnel, main = "lead_htop")
-terra::plot(stemsha_L_rast_quesnel, main = "stemsha_L")
-terra::plot(elev_rast_quesnel, main = "elevation")
-terra::plot(slope_rast_quesnel, main = "slope")
-terra::plot(asp_cos_rast_quesnel, main = "asp_cos")
-terra::plot(asp_sin_rast_quesnel, main = "asp_sin")
-terra::plot(species_class_rast_quesnel, main = "species_class")
+lead_htop_rast_gaspard = terra::resample(lead_htop_rast_gaspard, elev_rast_gaspard)
+stemsha_L_rast_gaspard = terra::resample(stemsha_L_rast_gaspard, elev_rast_gaspard)
+species_class_rast_gaspard = terra::resample(species_class_rast_gaspard, elev_rast_gaspard)
+elev_rast_gaspard = terra::mask(elev_rast_gaspard, lead_htop_rast_gaspard)
+slope_rast_gaspard = terra::mask(slope_rast_gaspard, lead_htop_rast_gaspard)
+asp_cos_rast_gaspard = terra::mask(asp_cos_rast_gaspard, lead_htop_rast_gaspard)
+asp_sin_rast_gaspard = terra::mask(asp_sin_rast_gaspard, lead_htop_rast_gaspard)
+species_class_rast_gaspard = terra::mask(species_class_rast_gaspard, lead_htop_rast_gaspard)
+lead_htop_rast_gaspard = terra::mask(lead_htop_rast_gaspard, species_class_rast_gaspard, inverse=FALSE)
+elev_rast_gaspard = terra::mask(elev_rast_gaspard, species_class_rast_gaspard, inverse=FALSE)
+slope_rast_gaspard = terra::mask(slope_rast_gaspard, species_class_rast_gaspard, inverse=FALSE)
+asp_cos_rast_gaspard = terra::mask(asp_cos_rast_gaspard, species_class_rast_gaspard, inverse=FALSE)
+asp_sin_rast_gaspard = terra::mask(asp_sin_rast_gaspard, species_class_rast_gaspard, inverse=FALSE)
+stemsha_L_rast_gaspard = terra::mask(stemsha_L_rast_gaspard, species_class_rast_gaspard, inverse=FALSE)
 
 names(elev_rast_quesnel) = "elev"
 names(slope_rast_quesnel) = "slope"
@@ -87,6 +92,14 @@ names(species_class_rast_quesnel) = "species_class"
 names(stemsha_L_rast_quesnel) = "stemsha_L"
 names(lead_htop_rast_quesnel) = "lead_htop"
 
+names(elev_rast_gaspard) = "elev"
+names(slope_rast_gaspard) = "slope"
+names(asp_cos_rast_gaspard) = "asp_cos"
+names(asp_sin_rast_gaspard) = "asp_sin"
+names(species_class_rast_gaspard) = "species_class"
+names(stemsha_L_rast_gaspard) = "stemsha_L"
+names(lead_htop_rast_gaspard) = "lead_htop"
+
 elev_raster_quesnel = raster::raster(elev_rast_quesnel)
 slope_raster_quesnel = raster::raster(slope_rast_quesnel)
 asp_cos_raster_quesnel = raster::raster(asp_cos_rast_quesnel)
@@ -94,6 +107,72 @@ asp_sin_raster_quesnel = raster::raster(asp_sin_rast_quesnel)
 species_class_raster_quesnel = raster::raster(species_class_rast_quesnel)
 stemsha_L_raster_quesnel = raster::raster(stemsha_L_rast_quesnel)
 lead_htop_raster_quesnel = raster::raster(lead_htop_rast_quesnel)
+
+elev_raster_gaspard = raster::raster(elev_rast_gaspard)
+slope_raster_gaspard = raster::raster(slope_rast_gaspard)
+asp_cos_raster_gaspard = raster::raster(asp_cos_rast_gaspard)
+asp_sin_raster_gaspard = raster::raster(asp_sin_rast_gaspard)
+species_class_raster_gaspard = raster::raster(species_class_rast_gaspard)
+stemsha_L_raster_gaspard = raster::raster(stemsha_L_rast_gaspard)
+lead_htop_raster_gaspard = raster::raster(lead_htop_rast_gaspard)
+
+# merge raster layers across sites
+elev_raster_list = list(elev_raster_quesnel, elev_raster_gaspard)
+slope_raster_list = list(slope_raster_quesnel, slope_raster_gaspard)
+asp_cos_raster_list = list(asp_cos_raster_quesnel, asp_cos_raster_gaspard)
+asp_sin_raster_list = list(asp_sin_raster_quesnel, asp_sin_raster_gaspard)
+species_class_raster_list = list(species_class_raster_quesnel, species_class_raster_gaspard)
+stemsha_L_raster_list = list(stemsha_L_raster_quesnel, stemsha_L_raster_gaspard)
+lead_htop_raster_list = list(lead_htop_raster_quesnel, lead_htop_raster_gaspard)
+
+elev_raster = do.call(merge, c(elev_raster_list, tolerance = 1))
+slope_raster = do.call(merge, c(slope_raster_list, tolerance = 1))
+asp_cos_raster = do.call(merge, c(asp_cos_raster_list, tolerance = 1))
+asp_sin_raster = do.call(merge, c(asp_sin_raster_list, tolerance = 1))
+species_class_raster = do.call(merge, c(species_class_raster_list, tolerance = 1))
+stemsha_L_raster = do.call(merge, c(stemsha_L_raster_list, tolerance = 1))
+lead_htop_raster = do.call(merge, c(lead_htop_raster_list, tolerance = 1))
+
+writeRaster(elev_raster, filename = "./data_quesnel_gaspard/covariates/elev_raster.tif", overwrite=TRUE)
+writeRaster(slope_raster, filename = "./data_quesnel_gaspard/covariates/slope_raster.tif", overwrite=TRUE)
+writeRaster(asp_cos_raster, filename = "./data_quesnel_gaspard/covariates/asp_cos_raster.tif", overwrite=TRUE)
+writeRaster(asp_sin_raster, filename = "./data_quesnel_gaspard/covariates/asp_sin_raster.tif", overwrite=TRUE)
+writeRaster(species_class_raster, filename = "./data_quesnel_gaspard/covariates/species_class_raster.tif", overwrite=TRUE)
+writeRaster(stemsha_L_raster, filename = "./data_quesnel_gaspard/covariates/stemsha_L_raster.tif", overwrite=TRUE)
+writeRaster(lead_htop_raster, filename = "./data_quesnel_gaspard/covariates/lead_htop_raster.tif", overwrite=TRUE)
+
+lead_htop_rast = terra::rast(lead_htop_raster)
+stemsha_L_rast = terra::rast(stemsha_L_raster)
+elev_rast = terra::rast(elev_raster)
+slope_rast = terra::rast(slope_raster)
+asp_cos_rast = terra::rast(asp_cos_raster)
+asp_sin_rast = terra::rast(asp_sin_raster)
+species_class_rast = terra::rast(species_class_raster)
+
+terra::plot(lead_htop_rast, main = "lead_htop (all sites)")
+terra::plot(stemsha_L_rast, main = "stemsha_L (all sites)")
+terra::plot(elev_rast, main = "elevation (all sites)")
+terra::plot(slope_rast, main = "slope (all sites)")
+terra::plot(asp_cos_rast, main = "asp_cos (all sites)")
+terra::plot(asp_sin_rast, main = "asp_sin (all sites)")
+terra::plot(species_class_rast, main = "species_class (all sites)")
+
+terra::plot(lead_htop_rast_gaspard, main = "lead_htop")
+terra::plot(stemsha_L_rast_gaspard, main = "stemsha_L")
+terra::plot(elev_rast_gaspard, main = "elevation")
+terra::plot(slope_rast_gaspard, main = "slope")
+terra::plot(asp_cos_rast_gaspard, main = "asp_cos")
+terra::plot(asp_sin_rast_gaspard, main = "asp_sin")
+terra::plot(species_class_rast_gaspard, main = "species_class")
+
+terra::plot(lead_htop_rast_gaspard, main = "lead_htop")
+terra::plot(stemsha_L_rast_gaspard, main = "stemsha_L")
+terra::plot(elev_rast_gaspard, main = "elevation")
+terra::plot(slope_rast_gaspard, main = "slope")
+terra::plot(asp_cos_rast_gaspard, main = "asp_cos")
+terra::plot(asp_sin_rast_gaspard, main = "asp_sin")
+terra::plot(species_class_rast_gaspard, main = "species_class")
+
 
 covs_m1_quesnel = raster::stack(
   lead_htop_raster_quesnel,
@@ -104,27 +183,49 @@ covs_m1_quesnel = raster::stack(
   asp_sin_raster_quesnel, 
   species_class_raster_quesnel)
 
-p1 = levelplot(covs_m1_quesnel, layers=1, margin = list(FUN = median))
-p2 = levelplot(covs_m1_quesnel)
+covs_m1_gaspard = raster::stack(
+  lead_htop_raster_gaspard,
+  stemsha_L_raster_gaspard,
+  elev_raster_gaspard, 
+  slope_raster_gaspard,
+  asp_cos_raster_gaspard, 
+  asp_sin_raster_gaspard, 
+  species_class_raster_gaspard)
+
+covs_m1_gaspard = raster::stack(
+  lead_htop_raster,
+  stemsha_L_raster,
+  elev_raster, 
+  slope_raster,
+  asp_cos_raster, 
+  asp_sin_raster, 
+  species_class_raster)
+
+p1.1_quesnel = rasterVis::levelplot(covs_m1_quesnel, layers=1, margin = list(FUN = median), main= 'lead_htop (Quesnel)')
+p1.2_quesnel = rasterVis::levelplot(covs_m1_quesnel, layers=2, margin = list(FUN = median), main= 'stemsha_L (Quesnel)')
+
+p2.1_gaspard = rasterVis::levelplot(covs_m1_gaspard)
+p2.2_quesnel = rasterVis::levelplot(covs_m1_quesnel)
+p2.3_quesnel_gaspard = rasterVis::levelplot(covs_m1_quesnel_gaspard)
 
 # Plot log scale transformation of rasters using zscaleLog argument and panel function. Defaults to ‘NULL’, in which case the Raster* is not transformed. Other possible values are any number that works as a base for taking logarithm, ‘TRUE’ (which is equivalent to 10), and ‘“e”’ (for the natural logarithm). 
-p3.1 = levelplot(lead_htop_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-p3.2 = levelplot(stemsha_L_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-p3.3 = levelplot(elev_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-p3.4 = levelplot(slope_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-p3.5 = levelplot(asp_cos_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-p3.6 = levelplot(asp_sin_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
-p3.7 = levelplot(species_class_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
+rasterVis::levelplot(lead_htop_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
+rasterVis::levelplot(stemsha_L_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
+rasterVis::levelplot(elev_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
+rasterVis::levelplot(slope_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
+rasterVis::levelplot(asp_cos_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
+rasterVis::levelplot(asp_sin_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
+rasterVis::levelplot(species_class_raster_quesnel^2, zscaleLog=TRUE, contour=TRUE) 
 
 mean_covs_m1_quesnel = raster::cellStats(covs_m1_quesnel, mean)
 p4 = levelplot(covs_m1_quesnel - mean_covs_m1_quesnel, par.settings = RdBuTheme())
 
 # plot scatter matrix and distribution grids
-p5.1 = splom(covs_m1_quesnel)
-p5.2 = histogram(covs_m1_quesnel)
-p5.3 = bwplot(covs_m1_quesnel)
-p5.4 = vectorplot(elev_raster_quesnel, par.settings=RdBuTheme())
-p5.5 = streamplot(elev_raster_quesnel)
+rasterVis::splom(covs_m1_quesnel)
+rasterVis::histogram(covs_m1_quesnel)
+rasterVis::bwplot(covs_m1_quesnel)
+rasterVis::vectorplot(elev_raster_quesnel, par.settings=RdBuTheme())
+rasterVis::streamplot(elev_raster_quesnel)
 
 # Import ground plot data
 faib_psp <- read.csv("/media/seamus/128GB_WORKD/EFI-TCC/0_Caret_Predict_to_writeRasterOutput/Data/FAIB_PSP_20211028.csv")
