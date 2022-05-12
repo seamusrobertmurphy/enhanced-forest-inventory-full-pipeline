@@ -28,6 +28,14 @@ asp_cos_raster_quesnel = raster::raster("./data_quesnel/covariates/asp_cos_raste
 asp_sin_raster_quesnel = raster::raster("./data_quesnel/covariates/asp_sin_raster.tif")
 species_class_raster_quesnel = raster::raster("./data_quesnel/covariates/species_class_raster.tif")
 
+lead_htop_raster_gaspard = raster::raster("./data_gaspard/covariates/lead_htop_ttops_100cell.tif")
+stemsha_L_raster_gaspard = raster::raster("./data_gaspard/covariates/stemsha_L_ttops_100cell.tif")
+elev_raster_gaspard = raster::raster("./data_gaspard/covariates/elev_raster.tif")
+slope_raster_gaspard = raster::raster("./data_gaspard/covariates/slope_raster.tif")
+asp_cos_raster_gaspard = raster::raster("./data_gaspard/covariates/asp_cos_raster.tif")
+asp_sin_raster_gaspard = raster::raster("./data_gaspard/covariates/asp_sin_raster.tif")
+species_class_raster_gaspard = raster::raster("./data_gaspard/covariates/species_class_raster.tif")
+
 lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
 stemsha_L_rast_quesnel = terra::rast(stemsha_L_raster_quesnel)
 elev_rast_quesnel = terra::rast(elev_raster_quesnel)
