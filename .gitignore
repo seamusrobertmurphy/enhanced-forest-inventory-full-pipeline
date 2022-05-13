@@ -4,8 +4,8 @@
 .Ruserdata
 
 Data/
-Results/
-Models/
+results/
+models/
 Scripts/
 data_gaspard/
 data_quesnel/
