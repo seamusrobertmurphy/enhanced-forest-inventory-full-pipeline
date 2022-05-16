@@ -368,7 +368,7 @@ print(as_tibble(faib_psp), n = 10)
 faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
 base::table(faib_psp$spc_live1, faib_psp$beclabel)
 faib_psp =  subset(faib_psp, spc_live1=='PL' | spc_live1=='PLI' | spc_live1=='SB' | spc_live1=='SE' | spc_live1=='SW' | spc_live1=='SX' | spc_live1=='FD'| spc_live1=='FDI' | spc_live1=='CW' | spc_live1=='HW' | spc_live1=='BL' | spc_live1=='LW')
-faib_psp = faib_psp[!(faib_psp$species_class==2 & faib_psp$bgc_zone == 'SBS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='SBPS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='ICH'),]
+#faib_psp = faib_psp[!(faib_psp$species_class==2 & faib_psp$bgc_zone == 'SBS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='SBPS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='ICH'),]
 faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 1, PLI = 1, SB = 2, SE = 2, SX = 2, FD = 3, FDI = 3, CW = 3, HW = 4, BL = 5, LW = 6)
 base::table(faib_psp$species_class, faib_psp$beclabel)
 
@@ -379,8 +379,8 @@ faib_psp$lead_htop = as.numeric(faib_psp$lead_htop)
 faib_psp$species_class = as.factor(faib_psp$species_class)
 faib_psp$stemsha_L = as.numeric(faib_psp$stemsha_L)
 faib_psp$wsvha_L = as.numeric(faib_psp$wsvha_L)
-
-faib_vri_true_m1_df = faib_psp[c("elev", "slope", "aspect", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
+faib_psp$baha_L
+faib_vri_true_m1_df = faib_psp[c("elev", "slope", "aspect", "lead_htop", "species_class", "stemsha_L", "wsvha_L", "baha_L")]
 faib_vri_true_m2_df = faib_psp[c("elev", "slope", "aspect", "lead_htop", "species_class", "wsvha_L")] 
 
 faib_vri_true_m1_df$elev[faib_vri_true_m1_df$elev <= 0] = NA
@@ -495,7 +495,124 @@ hist(lead_htop_raster, main="CHM 95th% (all sites)", maxpixels=22000000)
 hist(lead_htop_raster_gaspard, main="CHM 95th% (Gaspard)", maxpixels=22000000) 
 hist(lead_htop_raster_quesnel, main="CHM 95th% (Quesnel)", maxpixels=22000000) 
 
+#plot residual trends
+elev_wsvha_lm = lm(wsvha_L ~ elev, data = faib_vri_true_m1_df)
+slope_wsvha_lm = lm(wsvha_L ~ slope, data = faib_vri_true_m1_df)
+aspect_wsvha_lm = lm(wsvha_L ~ aspect, data = faib_vri_true_m1_df)
+lead_htop_wsvha_lm = lm(wsvha_L ~ lead_htop, data = faib_vri_true_m1_df)
+species_class_wsvha_lm = lm(wsvha_L ~ species_class, data = faib_vri_true_m1_df)
+stemsha_L_wsvha_lm = lm(wsvha_L ~ stemsha_L, data = faib_vri_true_m1_df)
+baha_L_wsvha_lm = lm(wsvha_L ~ baha_L, data = faib_vri_true_m1_df)
 
+par(mfrow = c(4, 4)) 
+summary(elev_wsvha_lm)
+truehist(faib_vri_true_m1_df$elev)
+truehist(elev_wsvha_lm$residuals)
+plot(wsvha_L ~ elev, data = faib_vri_true_m1_df,
+     main="Linear function showing negative correlation:\nR^2=0.011, ρ=-0.0954, p<0.0000",
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.8, cex.axis=0.8, adj=1,
+     ylab = "wsvha_L (m3/ha)", xlab = "DEM")
+abline(elev_wsvha_lm, col = "red")
+plot(elev_wsvha_lm, which=1, 
+     main="Residuals showing increasing trend\n clustering at larger fitted values", 
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.5, cex.axis=0.5, adj=1) # Residuals vs Fitted Plot
+summary(slope_wsvha_lm)
+truehist(faib_vri_true_m1_df$slope)
+truehist(slope_wsvha_lm$residuals)
+plot(wsvha_L ~ slope, data = faib_vri_true_m1_df,
+     main="Linear function showing negative correlation:\nR^2=0.0013, ρ=-0.5171: p=0.0009", 
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.8, cex.axis=0.8, adj=1,
+     ylab = "wsvha_L (m3/ha)", xlab = "slope")
+abline(slope_wsvha_lm, col = "red")
+plot(slope_wsvha_lm, which=1, 
+     main="Residuals showing increasing trend of\nnegative errors near larger fitted values", 
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.5, cex.axis=0.5, adj=1) 
+summary(aspect_wsvha_lm)
+truehist(faib_vri_true_m1_df$aspect)
+truehist(aspect_wsvha_lm$residuals)
+plot(wsvha_L ~ aspect, data = faib_vri_true_m1_df,
+     main="Linear function showing positive correlation:\nR^2=0.005, ρ=15.197, p<0.000",
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.8, cex.axis=0.8, adj=1,
+     ylab = "wsvha_L (m3/ha)", xlab = "asp_cos")
+abline(aspect_wsvha_lm, col = "red")
+plot(aspect_wsvha_lm, which=1, 
+     main="Residuals showing almost constant variance", 
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.5, cex.axis=0.5, adj=1) 
+
+summary(lead_htop_wsvha_lm)
+truehist(faib_vri_true_m1_df$lead_htop)
+truehist(lead_htop_wsvha_lm$residuals)
+plot(wsvha_L ~ lead_htop, data = faib_vri_true_m1_df,
+     main="Linear function shows positive correlation:\n R^2=0.6508, ρ=20.6829, p<0.0000",
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.8, cex.axis=0.8, adj=1,
+     ylab = "wsvha_L (m3/ha)", xlab = "lead_htop")
+abline(lead_htop_wsvha_lm, col = "red")
+plot(lead_htop_wsvha_lm, which=1, 
+     main="Residuals showing non-constant variance with\n increasing trends at smallest and largest fitted values", 
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.5, cex.axis=0.5, adj=1) 
+summary(stemsha_L_wsvha_lm)
+truehist(faib_vri_true_m1_df$stemsha_L)
+truehist(stemsha_L_wsvha_lm$residuals)
+plot(wsvha_L ~ stemsha_L, data = faib_vri_true_m1_df,
+     main="No significant relationship with response variable:\nR^2=0.0001, ρ=-0.0008, p<0.4743",
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.5, cex.axis=0.5, adj=1,
+     ylab = "wsvha_L (m3/ha)", xlab = "stemsha_L")
+abline(stemsha_L_wsvha_lm, col = "red")
+plot(stemsha_L_wsvha_lm, which=1, 
+     main="Residuals showing non-constant variance with negative\nand positive errors clusters at larger fitted values", 
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.5, cex.axis=0.5, adj=1) 
+
+wsvha_L_lm = lm(wsvha_L ~ ., data = faib_vri_true_m1_df)
+truehist(faib_vri_true_m1_df$wsvha_L)
+truehist(wsvha_L_lm$residuals)
+plot(wsvha_L_lm$residuals,
+     main="",
+     col="blue", pch=20, cex=0.8, cex.main=0.8, cex.lab=0.8, cex.axis=0.8, adj=1,
+     ylab = "wsvha_L (m3/ha)", xlab = "predictors")     
+abline(wsvha_L_lm, col="red")
+
+summary(baha_L_wsvha_lm)
+truehist(faib_vri_true_m1_df$baha_L)
+truehist(baha_L_wsvha_lm$residuals)
+plot(wsvha_L ~ baha_L, data = faib_vri_true_m1_df,
+     main="Linear function shows signficantly positive correlation:\nR^2=0.8396, ρ=9.9781, p<0.0000",
+     col="blue", pch=20, cex=0.8, cex.main=0.8, cex.lab=0.8, cex.axis=0.8, adj=1,
+     ylab = "wsvha_L (m3/ha)", xlab = "baha_L")
+abline(baha_L_wsvha_lm, col = "red")
+plot(baha_L_wsvha_lm, which=1, 
+     main="Residuals showing increasing trend\n of variances towards larger fitted values", 
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.5, cex.axis=0.5, adj=1) 
+summary(species_class_wsvha_lm)
+
+faib_vri_true_m1_df$species_class = as.numeric(faib_vri_true_m1_df$species_class)
+truehist(faib_vri_true_m1_df$species_class)
+truehist(species_class_wsvha_lm$residuals)
+plot(species_class_wsvha_lm, which=1, 
+     main="Residuals showing decreasing trend with True-fir group:\nR^2=0.0025, ρ=6.584, p<0.000", 
+     col="blue", pch=20, cex=0.5, cex.main=0.6, cex.lab=0.5, cex.axis=0.5, adj=1) 
+car::residualPlots(elev_wsvha_lm, terms= ~ 1 | species_class, cex=0.1, pch=19) # plot vs. yhat grouping by type
+
+
+
+?Sprop
+?stratasamp
+summary(faib_vri_true_m1_df$stemsha_L)
+summary(stemsha_L_raster)
+stems_faib = hist(faib_vri_true_m1_df$stemsha_L)
+stems_rast = hist(stemsha_L_raster)
+plot(stems_faib, col = 'light green')
+plot(stems_rast, col = 'red', add=T)
+
+
+head(faib_vri_true_m1_df)
+str(faib_vri_true_m1_df)
+sum(cells(lead_htop_rast))
+faib_vri_true_m1_df$N = 23955203404
+
+cellStats()
+faib_vri_true_m1_df.srs = survey::svydesign()
+
+sum(is.na(cells(lead_htop_rast)))
 
 rasterVis::levelplot(lead_htop_raster_gaspard^2, zscaleLog='e', main='lead_htop; log(n)') 
 rasterVis::levelplot(stemsha_L_raster_gaspard^2, zscaleLog='e', main='stemsha_L; log(n)') 
