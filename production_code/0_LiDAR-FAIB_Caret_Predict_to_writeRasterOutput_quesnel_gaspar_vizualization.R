@@ -597,22 +597,30 @@ car::residualPlots(elev_wsvha_lm, terms= ~ 1 | species_class, cex=0.1, pch=19) #
 ?Sprop
 ?stratasamp
 summary(faib_vri_true_m1_df$stemsha_L)
+psych::describe(faib_vri_true_m1_df$stemsha_L)
+
 summary(stemsha_L_raster)
+
 stems_faib = hist(faib_vri_true_m1_df$stemsha_L)
 stems_rast = hist(stemsha_L_raster)
 plot(stems_faib, col = 'light green')
 plot(stems_rast, col = 'red', add=T)
 
 
-head(faib_vri_true_m1_df)
-str(faib_vri_true_m1_df)
-sum(cells(lead_htop_rast))
-faib_vri_true_m1_df$N = 23955203404
 
-cellStats()
 faib_vri_true_m1_df.srs = survey::svydesign()
+lead_htop_sv = terra::as.polygons(lead_htop_rast)
+summary(lead_htop_rast)
+plot(lead_htop_rast)
+plot(stemsha_L_rast)
+ncell(stemsha_L_rast)
+freq(stemsha_L_rast, value=NA)
+allSite_cellCount = (ncell(stemsha_L_rast) - freq(stemsha_L_rast, value = NA))
+allSite_cellCount
 
-sum(is.na(cells(lead_htop_rast)))
+faib_vri_true_m1_df$N = 19975
+
+
 
 rasterVis::levelplot(lead_htop_raster_gaspard^2, zscaleLog='e', main='lead_htop; log(n)') 
 rasterVis::levelplot(stemsha_L_raster_gaspard^2, zscaleLog='e', main='stemsha_L; log(n)') 
