@@ -148,6 +148,7 @@ slope_rast = terra::rast(slope_raster)
 asp_cos_rast = terra::rast(asp_cos_raster)
 asp_sin_rast = terra::rast(asp_sin_raster)
 species_class_rast = terra::rast(species_class_raster)
+plot(species_class_rast)
 
 aspect_rast = terra::terrain(elev_rast, v="aspect", unit="degrees", neighbors=8) # generate aspect for glm-fit
 aspect_rast_gaspard = terra::terrain(elev_rast_gaspard, v="aspect", unit="degrees", neighbors=8) # generate aspect for glm-fit
@@ -180,46 +181,21 @@ terra::plot(asp_cos_rast_quesnel, main = "asp_cos")
 terra::plot(asp_sin_rast_quesnel, main = "asp_sin")
 terra::plot(species_class_rast_quesnel, main = "species_class")
 
-covs_m1_quesnel = raster::stack(
-  lead_htop_raster_quesnel,
-  stemsha_L_raster_quesnel,
-  elev_raster_quesnel, 
-  slope_raster_quesnel,
-  aspect_raster_quesnel, 
-  species_class_raster_quesnel)
-
-covs_m1_gaspard = raster::stack(
-  lead_htop_raster_gaspard,
-  stemsha_L_raster_gaspard,
-  elev_raster_gaspard, 
-  slope_raster_gaspard,
-  aspect_raster_gaspard,
-  species_class_raster_gaspard)
-
-covs_m1 = raster::stack(
-  lead_htop_raster,
-  stemsha_L_raster,
-  elev_raster, 
-  slope_raster,
-  aspect_raster,
-  species_class_raster)
-
-
 # refactor species covariate to enable glmGamma modelling
-species_class_sv = terra::as.polygons(species_class_rast)
-species_class_sf = sf::st_as_sf(species_class_sv)
-species_class_sf$layer = dplyr::recode(species_class_sf$layer, '0' = 1, '1' = 2, '2' = 3, '3' = 4, '4' = 5, '5' = 6, '6' = 7, '7' = 8)
-species_class_rast = terra::rasterize(terra::vect(species_class_sf), species_class_rast, field = "layer", touches = TRUE)
+#species_class_sv = terra::as.polygons(species_class_rast)
+#species_class_sf = sf::st_as_sf(species_class_sv)
+#species_class_sf$layer = dplyr::recode(species_class_sf$layer, '0' = 1, '1' = 2, '2' = 3, '3' = 4, '4' = 5, '5' = 6, '6' = 7, '7' = 8)
+#species_class_rast = terra::rasterize(terra::vect(species_class_sf), species_class_rast, field = "layer", touches = TRUE)
 
-species_class_sv_gaspard = terra::as.polygons(species_class_rast_gaspard)
-species_class_sf_gaspard = sf::st_as_sf(species_class_sv_gaspard)
-species_class_sf_gaspard$layer = dplyr::recode(species_class_sf_gaspard$layer, '0' = 1, '1' = 2, '2' = 3, '3' = 4, '4' = 5, '5' = 6, '6' = 7, '7' = 8)
-species_class_rast_gaspard = terra::rasterize(terra::vect(species_class_sf_gaspard), species_class_rast_gaspard, field = "layer", touches = TRUE)
+#species_class_sv_gaspard = terra::as.polygons(species_class_rast_gaspard)
+#species_class_sf_gaspard = sf::st_as_sf(species_class_sv_gaspard)
+#species_class_sf_gaspard$layer = dplyr::recode(species_class_sf_gaspard$layer, '0' = 1, '1' = 2, '2' = 3, '3' = 4, '4' = 5, '5' = 6, '6' = 7, '7' = 8)
+#species_class_rast_gaspard = terra::rasterize(terra::vect(species_class_sf_gaspard), species_class_rast_gaspard, field = "layer", touches = TRUE)
 
-species_class_sv_quesnel = terra::as.polygons(species_class_rast_quesnel)
-species_class_sf_quesnel = sf::st_as_sf(species_class_sv_quesnel)
-species_class_sf_quesnel$layer = dplyr::recode(species_class_sf_quesnel$layer, '0' = 1, '1' = 2, '2' = 3, '3' = 4, '4' = 5, '5' = 6, '6' = 7, '7' = 8)
-species_class_rast_quesnel = terra::rasterize(terra::vect(species_class_sf_quesnel), species_class_rast_quesnel, field = "layer", touches = TRUE)
+#species_class_sv_quesnel = terra::as.polygons(species_class_rast_quesnel)
+#species_class_sf_quesnel = sf::st_as_sf(species_class_sv_quesnel)
+#species_class_sf_quesnel$layer = dplyr::recode(species_class_sf_quesnel$layer, '0' = 1, '1' = 2, '2' = 3, '3' = 4, '4' = 5, '5' = 6, '6' = 7, '7' = 8)
+#species_class_rast_quesnel = terra::rasterize(terra::vect(species_class_sf_quesnel), species_class_rast_quesnel, field = "layer", touches = TRUE)
 
 names(elev_rast) = "elev"
 names(slope_rast) = "slope"
@@ -293,8 +269,20 @@ covs_m1 = raster::stack(
   aspect_raster, 
   species_class_raster)
 
-#rasterVis::levelplot(covs_m1_quesnel, layers=1, margin = list(FUN = median), main= 'lead_htop (Quesnel)')
-#rasterVis::levelplot(covs_m1_quesnel, layers=2, margin = list(FUN = median), main= 'stemsha_L (Quesnel)')
+
+# plot scatter matrix and distribution grids
+rasterVis::splom(covs_m1_gaspard)
+rasterVis::splom(covs_m1_quesnel)
+rasterVis::splom(covs_m1)
+
+rasterVis::histogram(covs_m1_gaspard)
+rasterVis::histogram(covs_m1_quesnel)
+rasterVis::histogram(covs_m1)
+
+rasterVis::bwplot(covs_m1_gaspard)
+rasterVis::bwplot(covs_m1_quesnel)
+rasterVis::bwplot(covs_m1)
+
 rasterVis::levelplot(covs_m1_gaspard)
 rasterVis::levelplot(covs_m1_quesnel)
 rasterVis::levelplot(covs_m1)
@@ -349,18 +337,7 @@ rasterVis::levelplot(aspect_raster^2, zscaleLog='e', main='aspect; log(n)')
 #rasterVis::levelplot(covs_m1_quesnel - mean_covs_m1_quesnel, par.settings = RdBuTheme())
 #rasterVis::levelplot(covs_m1 - mean_covs_m1, par.settings = RdBuTheme())
 
-# plot scatter matrix and distribution grids
-rasterVis::splom(covs_m1_gaspard)
-rasterVis::splom(covs_m1_quesnel)
-rasterVis::splom(covs_m1)
 
-rasterVis::histogram(covs_m1_gaspard)
-rasterVis::histogram(covs_m1_quesnel)
-rasterVis::histogram(covs_m1)
-
-rasterVis::bwplot(covs_m1_gaspard)
-rasterVis::bwplot(covs_m1_quesnel)
-rasterVis::bwplot(covs_m1)
 
 # Import ground plot data
 faib_psp <- read.csv("/media/seamus/128GB_WORKD/EFI-TCC/0_Caret_Predict_to_writeRasterOutput/Data/FAIB_PSP_20211028.csv")
@@ -371,6 +348,8 @@ faib_psp =  subset(faib_psp, spc_live1=='PL' | spc_live1=='PLI' | spc_live1=='SB
 #faib_psp = faib_psp[!(faib_psp$species_class==2 & faib_psp$bgc_zone == 'SBS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='SBPS' | faib_psp$species_class==2 & faib_psp$bgc_zone =='ICH'),]
 faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 1, PLI = 1, SB = 2, SE = 2, SX = 2, FD = 3, FDI = 3, CW = 3, HW = 4, BL = 5, LW = 6)
 base::table(faib_psp$species_class, faib_psp$beclabel)
+faib_psp = subset(faib_psp, bh_stand_age > 10)
+faib_psp = subset(faib_psp, stemsha_L < 834)
 
 faib_psp$elev = as.numeric(faib_psp$elev)
 faib_psp$slope = as.numeric(faib_psp$slope)
@@ -379,8 +358,10 @@ faib_psp$lead_htop = as.numeric(faib_psp$lead_htop)
 faib_psp$species_class = as.factor(faib_psp$species_class)
 faib_psp$stemsha_L = as.numeric(faib_psp$stemsha_L)
 faib_psp$wsvha_L = as.numeric(faib_psp$wsvha_L)
-faib_psp$baha_L
-faib_vri_true_m1_df = faib_psp[c("elev", "slope", "aspect", "lead_htop", "species_class", "stemsha_L", "wsvha_L", "baha_L")]
+
+
+#faib_psp = faib_psp[c("elev", "slope", "aspect", "lead_htop", "species_class", "stemsha_L", "wsvha_L", "baha_L", )]
+faib_vri_true_m1_df = faib_psp[c("elev", "slope", "aspect", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
 faib_vri_true_m2_df = faib_psp[c("elev", "slope", "aspect", "lead_htop", "species_class", "wsvha_L")] 
 
 faib_vri_true_m1_df$elev[faib_vri_true_m1_df$elev <= 0] = NA
@@ -397,6 +378,31 @@ sum(is.na(faib_vri_true_m1_df))
 sum(is.na(faib_vri_true_m2_df))
 print(as_tibble(faib_vri_true_m1_df), n = 10)
 print(as_tibble(faib_vri_true_m2_df), n = 10)
+
+stemsha_L_raster_df = as.data.frame(rasterToPoints(stemsha_L_raster))
+psych::describe(faib_vri_true_m1_df)
+psych::describe(stemsha_L_raster_df)
+
+faib_vri_true_m1_df_dist = sample(faib_vri_true_m1_df, replace = T, prob = dens.obs$y)
+faib_vri_true_m1_df_dist = faib_vri_true_m1_df %>% sample(n=5171, weight_by = dist.fun(faib_vri_true_m1_df$stemsha_L), replace = T)
+
+##############
+faib_psp = subset(faib_psp, bh_stand_age > 10)
+faib_psp = subset(faib_psp, stemsha_L < 834)
+faib_vri_true_m1_df_dist = faib_vri_true_m1_df %>% slice_sample(n=5171, weight_by = dist.fun(faib_vri_true_m1_df$stemsha_L), replace = T)
+##################
+
+graphics.off()
+par(mfrow = c(1, 4)) 
+truehist(faib_vri_true_m1_df_dist$stemsha_L, main="Stems/ha (faib)", maxpixels=22000000)
+hist(stemsha_L_raster, main="Stems/ha (all sites)", maxpixels=22000000)
+hist(stemsha_L_raster_gaspard, main="Stems/ha (Gaspard)", maxpixels=22000000)
+hist(stemsha_L_raster_quesnel, main="Stems/ha (Quesnel)", maxpixels=22000000)
+psych::describe(faib_vri_true_m1_df_dist)
+
+faib_vri_true_m1_df_dist = faib_vri_true_m1_df %>%
+  dplyr::filter(stemsha_L %in% stemsha_L_raster_df$stemsha_L)
+
 
 n <- nrow(faib_vri_true_m1_df)
 frac <- 0.8
@@ -458,6 +464,7 @@ tuneResult_GLM_m1_logLink_gamma_to_raster_quesnel = raster::predict(covs_m1_ques
 
 # compare rasters with faib permanent sample plot data
 library(MASS)
+graphics.off()
 par(mfrow=c(4,4))
 truehist(faib_vri_true_m1_df$wsvha_L, main="WSVHA (faib)", maxpixels=22000000)
 hist(tuneResult_GLM_m1_logLink_gamma_to_raster, main="WSVHA (all sites)")
@@ -594,19 +601,27 @@ car::residualPlots(elev_wsvha_lm, terms= ~ 1 | species_class, cex=0.1, pch=19) #
 
 
 
+dist.fun = approxfun(density(stemsha_L_raster_df$stemsha_L))
+dens.obs = density(stemsha_L_raster_df$stemsha_L)
+faib_vri_true_m1_df_dist = sample(faib_vri_true_m1_df, replace = T, prob = dens.obs$y)
+
+
+hist(faib_vri_true_m1_df_dist$stemsha_L)
+
+
+
+psych::describe(faib_vri_true_m1_df_dist)
+str(faib_vri_true_m1_df_dist)
 ?Sprop
 ?stratasamp
 summary(faib_vri_true_m1_df$stemsha_L)
 psych::describe(faib_vri_true_m1_df$stemsha_L)
-
 summary(stemsha_L_raster)
 
 stems_faib = hist(faib_vri_true_m1_df$stemsha_L)
 stems_rast = hist(stemsha_L_raster)
 plot(stems_faib, col = 'light green')
 plot(stems_rast, col = 'red', add=T)
-
-
 
 faib_vri_true_m1_df.srs = survey::svydesign()
 lead_htop_sv = terra::as.polygons(lead_htop_rast)
