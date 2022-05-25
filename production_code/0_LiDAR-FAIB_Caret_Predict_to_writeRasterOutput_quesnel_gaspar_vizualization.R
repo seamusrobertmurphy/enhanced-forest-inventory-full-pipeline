@@ -307,8 +307,8 @@ covs_m2 = raster::stack(
   #aspect_raster, 
   asp_cos_raster,
   asp_sin_raster,
-  species_class_raster,
-  lead_htop_raster)
+  lead_htop_raster,
+  species_class_raster)
 
 names(covs_m1)
 names(covs_m2)
@@ -437,10 +437,6 @@ faib_psp = faib_psp %>%
 psych::describe(faib_psp$stemsha_L)
 hist(faib_psp$stemsha_L)
 
-psych::describe(stemsha_L_raster_df$stemsha_L)
-hist(stemsha_L_raster_df$stemsha_L)
-psych::describe(faib_psp$stemsha_L)
-
 faib_psp$elev = as.numeric(faib_psp$elev)
 faib_psp$slope = as.numeric(faib_psp$slope)
 faib_psp$aspect = as.numeric(faib_psp$aspect)
@@ -499,6 +495,9 @@ names(X_m2)
 names(faib_vri_true_m1_df)
 names(faib_vri_true_m1_df)
 
+hist(faib_vri_true_m1_df$stemsha_L)
+hist(train_m1$stemsha_L)
+hist(test_m1$stemsha_L)
 
 # compare rasters with faib permanent sample plot data
 library(MASS)
@@ -660,7 +659,6 @@ abline(wsvha_L_lm, col="red")
 summary(species_class_wsvha_lm)
 faib_vri_true_m1_df$species_class = as.numeric(faib_vri_true_m1_df$species_class)
 truehist(faib_vri_true_m1_df$species_class)
-truehist(faib_vri_true_m1_df$species_class)
 truehist(species_class_wsvha_lm$residuals)
 plot(species_class_wsvha_lm, which=1, 
      main="Residuals showing decreasing trend with True-fir group:\nR^2=0.0025, ρ=6.584, p<0.000", 
@@ -678,7 +676,7 @@ fitControl_10x10 = caret::trainControl(method="repeatedcv", number=10, repeats=1
 
 tuneResult_svm_m1_full_eps <- train(
   X_m1, y_m1, 
-  trControl = fitControl_10x10,
+  trControl = fitControl_YeoJx1,
   method = 'svmRadial', metric = 'RMSE',
   ranges = list(epsilon = seq(0.02,0.1,0.2), cost = c(1,5,7,15,20), gamma = 2^(-1:1)), tuneLength = 10,
   preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
@@ -686,7 +684,7 @@ tuneResult_svm_m1_full_eps <- train(
 
 tuneResult_svm_m2_full_eps = train(
   X_m2, y_m2,
-  trControl = fitControl_10x10,
+  trControl = fitControl_YeoJx1,
   method = 'svmRadial', metric = 'RMSE',
   ranges = list(epsilon = seq(0.02,0.1,0.2), cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
   preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
@@ -702,7 +700,7 @@ writeRaster(tunedModel_svm_m2_to_raster_eps, filename = "./results/model1_svmRad
 writeRaster(tunedModel_svm_m1_to_raster_eps, filename = "./results/model2_svmRadial_100m_eps.tif", overwrite=TRUE)
 print(tunedModel_svm_m2_full_eps)
 print(tunedModel_svm_m1_full_eps)
-
+graphics.off()
 par(mfrow = c(2,2))
 model1_svmRadial_100cell_eps = raster::raster("./results/model1_svmRadial_100m_eps.tif")
 model2_svmRadial_100cell_eps = raster::raster("./results/model2_svmRadial_100m_eps.tif")
@@ -715,7 +713,7 @@ rasterVis::densityplot(model2_svmRadial_100cell_eps, main="Model2 WITH-STEMS")
 
 tuneResult_svmRadial_m2_10k_train_eps <- train(
   X_train_m2, y_train_m2,
-  trControl = fitControl_10x10,
+  trControl = fitControl_YeoJx1,
   method = 'svmRadial', metric = 'RMSE',
   ranges = list(epsilon = seq(0.02,0.1,0.2), cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
   preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
@@ -852,24 +850,16 @@ tunedModel_svmRadial_m1_RMSE/tunedModel_svmRadial_m1_test_RMSE
 tuneResult_svm_m2_full_linear <- train(
   X_m2, y_m2,
   trControl = fitControl_YeoJx1,
-  method = 'svmLinear',
-  metric = 'RMSE', 
-  ranges = list(
-    cost = c(1,5,7,15,20), 
-    gamma = 2^(-1:1)),
-  tuneLength = 10,
+  method = 'svmLinear',metric = 'RMSE', 
+  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
   preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
   verbose=F)
 
 tuneResult_svm_m1_full_linear <- train(
   X_m1, y_m1,
   trControl = fitControl_YeoJx1,
-  method = 'svmLinear',
-  metric = 'RMSE',
-  ranges = list(
-    cost = c(1,5,7,15,20), 
-    gamma = 2^(-1:1)),
-  tuneLength = 10,
+  method = 'svmLinear', metric = 'RMSE',
+  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
   preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
   verbose=F)
 
@@ -879,42 +869,37 @@ tunedModel_svm_m2_to_raster_linear <- raster::predict(covs_m2, tuneResult_svm_m2
 tunedModel_svm_m1_to_raster_linear <- raster::predict(covs_m1, tuneResult_svm_m1_full_linear)
 save(tunedModel_svm_m2_full_linear, file = "./models/tunedModel_svmRadial_m2_10k_linear.RData")
 save(tunedModel_svm_m1_full_linear, file = "./models/tunedModel_svmRadial_m1_10k_linear.RData")
+tunedModel_svm_m2_to_raster_linear$layer[tunedModel_svm_m2_to_raster_linear$layer < 0] = NA
+tunedModel_svm_m1_to_raster_linear$layer[tunedModel_svm_m1_to_raster_linear$layer < 0] = NA
 writeRaster(tunedModel_svm_m2_to_raster_linear, filename = "./results/model1_svmRadial_100m_linear.tif", overwrite=TRUE)
 writeRaster(tunedModel_svm_m1_to_raster_linear, filename = "./results/model2_svmRadial_100m_linear.tif", overwrite=TRUE)
 print(tunedModel_svm_m2_full_linear)
 print(tunedModel_svm_m1_full_linear)
 
-par(mfrow = c(2,2))
+graphics.off()
+par(mfrow = c(2,1))
 model1_svmLinear_100cell = raster::raster("./results/model1_svmRadial_100m_linear.tif")
 model2_svmLinear_100cell = raster::raster("./results/model2_svmRadial_100m_linear.tif")
-plot(model1_svmLinear_100cell, main="Model1 NO-STEMS (SVMLin Eps-Free)", cex.main=0.9)
-hist(model1_svmLinear_100cell, main="Model1 NO-STEMS (SVMLin Eps-Free)", cex.main=0.8, maxpixels=22000000) 
-plot(model2_svmLinear_100cell, main="Model2 WITH-STEMS (SVMLin Eps-Free)", cex.main=0.8)
-hist(model2_svmLinear_100cell, main="Model2 WITH-STEMS (SVMLin Eps-Free)", cex.main=0.8, maxpixels=22000000) 
-rasterVis::densityplot(model1_svmLinear_100cell, main="Model1 NO-STEMS (SVMLin Eps-Free)")
-rasterVis::densityplot(model2_svmLinear_100cell, main="Model2 WITH-STEMS (SVMLin Eps-Free)")
+plot(model1_svmLinear_100cell, main="Model1 NO-STEMS (SVMLinear)", cex.main=0.9)
+hist(model1_svmLinear_100cell, main="Model1 NO-STEMS (SVMLinear)", cex.main=0.8, maxpixels=22000000) 
+plot(model2_svmLinear_100cell, main="Model2 WITH-STEMS (SVMLinear)", cex.main=0.8)
+hist(model2_svmLinear_100cell, main="Model2 WITH-STEMS (SVMLinear)", cex.main=0.8, maxpixels=22000000) 
+rasterVis::densityplot(model1_svmLinear_100cell, main="Model1 NO-STEMS (SVMLinear)")
+rasterVis::densityplot(model2_svmLinear_100cell, main="Model2 WITH-STEMS (SVMLinear)")
 
 tuneResult_svmLinear_m2_10k_train <- train(
   X_train_m2, y_train_m2,
   trControl = fitControl_YeoJx1,
-  method = 'svmLinear',
-  metric = 'RMSE',
-  ranges = list(
-    cost = c(1,5,7,15,20), 
-    gamma = 2^(-1:1)),
-  tuneLength = 10,
+  method = 'svmLinear', metric = 'RMSE',
+  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
   preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
   verbose=F)
 
 tuneResult_svmLinear_m1_10k_train <- train(
   X_train_m1, y_train_m1,
   trControl = fitControl_YeoJx1,
-  method = 'svmLinear',
-  metric = 'RMSE',
-  ranges = list(
-    cost = c(1,5,7,15,20), 
-    gamma = 2^(-1:1)),
-  tuneLength = 10,
+  method = 'svmLinear',metric = 'RMSE',
+  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
   preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
   verbose=F)
 
@@ -932,18 +917,109 @@ tunedModel_svmLinear_m1_MAE = MAE(tunedModel_svmLinear_m1, faib_vri_true_m1_df$w
 tunedModel_svmLinear_m2_RMSE = RMSE(tunedModel_svmLinear_m2, faib_vri_true_m2_df$wsvha_L)
 tunedModel_svmLinear_m1_RMSE = RMSE(tunedModel_svmLinear_m1, faib_vri_true_m1_df$wsvha_L)
 
+tunedModel_svm_m2_full_linear
+R2(tunedModel_svmLinear_m2, y_m2)
 tunedModel_svmLinear_m2_MAE
 tunedModel_svmLinear_m2_RMSE 
 tunedModel_svmLinear_m2_test_MAE
 tunedModel_svmLinear_m2_test_RMSE
 tunedModel_svmLinear_m2_RMSE/tunedModel_svmLinear_m2_test_RMSE
 
+tunedModel_svm_m1_full_linear
+R2(tunedModel_svmLinear_m1, y_m1)
 tunedModel_svmLinear_m1_MAE
 tunedModel_svmLinear_m1_RMSE 
 tunedModel_svmLinear_m1_test_MAE
 tunedModel_svmLinear_m1_test_RMSE
 tunedModel_svmLinear_m1_RMSE/tunedModel_svmLinear_m1_test_RMSE
 
+
+# glmGamma-caret
+tuneResult_glm_m2_full_gamma <- train(
+  X_m2, y_m2,
+  trControl = fitControl_YeoJx1,
+  method = 'glm',metric = 'RMSE', 
+  ranges = list(cost = c(1,5,7,15,20), gamma = 5^(-1:1)), tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  verbose=F)
+
+tuneResult_svm_m1_full_linear <- train(
+  X_m1, y_m1,
+  trControl = fitControl_YeoJx1,
+  method = 'svmLinear', metric = 'RMSE',
+  ranges = list(cost = c(1,5,7,15,20), gamma = 5^(-1:1)),tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  verbose=F)
+
+tunedModel_svm_m2_full_linear <- tuneResult_svm_m2_full_linear$finalModel
+tunedModel_svm_m1_full_linear <- tuneResult_svm_m1_full_linear$finalModel
+tunedModel_svm_m2_to_raster_linear <- raster::predict(covs_m2, tuneResult_svm_m2_full_linear)
+tunedModel_svm_m1_to_raster_linear <- raster::predict(covs_m1, tuneResult_svm_m1_full_linear)
+save(tunedModel_svm_m2_full_linear, file = "./models/tunedModel_svmRadial_m2_10k_linear.RData")
+save(tunedModel_svm_m1_full_linear, file = "./models/tunedModel_svmRadial_m1_10k_linear.RData")
+tunedModel_svm_m2_to_raster_linear$layer[tunedModel_svm_m2_to_raster_linear$layer < 0] = NA
+tunedModel_svm_m1_to_raster_linear$layer[tunedModel_svm_m1_to_raster_linear$layer < 0] = NA
+writeRaster(tunedModel_svm_m2_to_raster_linear, filename = "./results/model1_svmRadial_100m_linear.tif", overwrite=TRUE)
+writeRaster(tunedModel_svm_m1_to_raster_linear, filename = "./results/model2_svmRadial_100m_linear.tif", overwrite=TRUE)
+print(tunedModel_svm_m2_full_linear)
+print(tunedModel_svm_m1_full_linear)
+
+graphics.off()
+par(mfrow = c(2,1))
+model1_svmLinear_100cell = raster::raster("./results/model1_svmRadial_100m_linear.tif")
+model2_svmLinear_100cell = raster::raster("./results/model2_svmRadial_100m_linear.tif")
+plot(model1_svmLinear_100cell, main="Model1 NO-STEMS (SVMLinear)", cex.main=0.9)
+hist(model1_svmLinear_100cell, main="Model1 NO-STEMS (SVMLinear)", cex.main=0.8, maxpixels=22000000) 
+plot(model2_svmLinear_100cell, main="Model2 WITH-STEMS (SVMLinear)", cex.main=0.8)
+hist(model2_svmLinear_100cell, main="Model2 WITH-STEMS (SVMLinear)", cex.main=0.8, maxpixels=22000000) 
+rasterVis::densityplot(model1_svmLinear_100cell, main="Model1 NO-STEMS (SVMLinear)")
+rasterVis::densityplot(model2_svmLinear_100cell, main="Model2 WITH-STEMS (SVMLinear)")
+
+tuneResult_svmLinear_m2_10k_train <- train(
+  X_train_m2, y_train_m2,
+  trControl = fitControl_YeoJx1,
+  method = 'svmLinear', metric = 'RMSE',
+  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  verbose=F)
+
+tuneResult_svmLinear_m1_10k_train <- train(
+  X_train_m1, y_train_m1,
+  trControl = fitControl_YeoJx1,
+  method = 'svmLinear',metric = 'RMSE',
+  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
+  verbose=F)
+
+tunedModel_svmLinear_m2_test = predict(tuneResult_svmLinear_m2_10k_train, data = test_m2)
+tunedModel_svmLinear_m1_test = predict(tuneResult_svmLinear_m1_10k_train, data = test_m1)
+tunedModel_svmLinear_m2_test_MAE = MAE(tunedModel_svmLinear_m2_test, test_m2$wsvha_L)
+tunedModel_svmLinear_m1_test_MAE = MAE(tunedModel_svmLinear_m1_test, test_m1$wsvha_L)
+tunedModel_svmLinear_m2_test_RMSE = RMSE(tunedModel_svmLinear_m2_test, test_m2$wsvha_L)
+tunedModel_svmLinear_m1_test_RMSE = RMSE(tunedModel_svmLinear_m1_test, test_m1$wsvha_L)
+
+tunedModel_svmLinear_m2 = predict(tuneResult_svm_m2_full_linear, data = faib_vri_true_m2_df)
+tunedModel_svmLinear_m1 = predict(tuneResult_svm_m1_full_linear, data = faib_vri_true_m1_df)
+tunedModel_svmLinear_m2_MAE = MAE(tunedModel_svmLinear_m2, faib_vri_true_m2_df$wsvha_L)
+tunedModel_svmLinear_m1_MAE = MAE(tunedModel_svmLinear_m1, faib_vri_true_m1_df$wsvha_L)
+tunedModel_svmLinear_m2_RMSE = RMSE(tunedModel_svmLinear_m2, faib_vri_true_m2_df$wsvha_L)
+tunedModel_svmLinear_m1_RMSE = RMSE(tunedModel_svmLinear_m1, faib_vri_true_m1_df$wsvha_L)
+
+tunedModel_svm_m2_full_linear
+R2(tunedModel_svmLinear_m2, y_m2)
+tunedModel_svmLinear_m2_MAE
+tunedModel_svmLinear_m2_RMSE 
+tunedModel_svmLinear_m2_test_MAE
+tunedModel_svmLinear_m2_test_RMSE
+tunedModel_svmLinear_m2_RMSE/tunedModel_svmLinear_m2_test_RMSE
+
+tunedModel_svm_m1_full_linear
+R2(tunedModel_svmLinear_m1, y_m1)
+tunedModel_svmLinear_m1_MAE
+tunedModel_svmLinear_m1_RMSE 
+tunedModel_svmLinear_m1_test_MAE
+tunedModel_svmLinear_m1_test_RMSE
+tunedModel_svmLinear_m1_RMSE/tunedModel_svmLinear_m1_test_RMSE
 
 
 # random forest
@@ -954,10 +1030,6 @@ tuneResult_rfCaret_m2_10k_full <- train(
   tuneLength = 10, 
   preProcess = c("BoxCox",'center', 'scale'))
 
-tunedModel_rfCaret_m2 = predict(tuneResult_rfCaret_m2_10k_full, data = faib_vri_true_m2_df)
-tunedModel_rfCaret_m2_MAE = MAE(tunedModel_rfCaret_m2, faib_vri_true_m2_df$wsvha_L)
-tunedModel_rfCaret_m2_RMSE = RMSE(tunedModel_rfCaret_m2, faib_vri_true_m2_df$wsvha_L)
-
 tuneResult_rfCaret_m2_10k_train <- train(
   X_train_m2,y_train_m2,
   trControl = fitControl_YeoJx1,
@@ -965,9 +1037,13 @@ tuneResult_rfCaret_m2_10k_train <- train(
   tuneLength = 10,
   preProcess = c("BoxCox",'center', 'scale'))
 
+tunedModel_rfCaret_m2 = predict(tuneResult_rfCaret_m2_10k_full, data = faib_vri_true_m2_df)
+tunedModel_rfCaret_m2_MAE = MAE(tunedModel_rfCaret_m2, faib_vri_true_m2_df$wsvha_L)
+tunedModel_rfCaret_m2_RMSE = RMSE(tunedModel_rfCaret_m2, faib_vri_true_m2_df$wsvha_L)
 tunedModel_rfCaret_m2_test = predict(tuneResult_rfCaret_m2_10k_train, data = test_m2)
 tunedModel_rfCaret_m2_test_MAE = MAE(tunedModel_rfCaret_m2_test, test_m2$wsvha_L)
 tunedModel_rfCaret_m2_test_RMSE = RMSE(tunedModel_rfCaret_m2_test, test_m2$wsvha_L)
+
 tunedModel_rfCaret_m2_MAE
 tunedModel_rfCaret_m2_RMSE
 tunedModel_rfCaret_m2_test_MAE
@@ -988,9 +1064,17 @@ plot(tunedModel_rfCaret_m2_10k_to_raster, main="Estimated Whole Stem Volume Gasp
 
 
 
-# caretEnsemble m2
+# caretEnsemble 
 model_list_m2_10k <- caretList(
-  X_train_m2, y_train_m2,
+  X_m2, y_m2,
+  trControl = fitControl_YeoJx1,
+  methodList = c('glm', 'svmLinear', 'svmRadial', 'rf'),
+  tuneLength=10,
+  continue_on_fail = FALSE, 
+  preProcess = c('BoxCox', 'center','scale'))
+
+model_list_m1_10k <- caretList(
+  X_m1, y_m1,
   trControl = fitControl_YeoJx1,
   methodList = c('glm', 'svmLinear', 'svmRadial', 'rf'),
   tuneLength=10,
@@ -1003,75 +1087,144 @@ model_results_m2_10k <- data.frame(
   SVMRADIAL = min(model_list_m2_10k$svmRadial$results$RMSE),
   RF = min(model_list_m2_10k$rf$results$RMSE))
 
+model_results_m1_10k <- data.frame(
+  GLM = min(model_list_m1_10k$glm$results$RMSE),
+  SVMLINEAR = min(model_list_m1_10k$svmLinear$results$RMSE),
+  SVMRADIAL = min(model_list_m1_10k$svmRadial$results$RMSE),
+  RF = min(model_list_m1_10k$rf$results$RMSE))
+
 resamples_m2_10k = resamples(model_list_m2_10k)
 dotplot(resamples_m2_10k, metric = 'RMSE')
-bwplot(resamples_m2_10k, metric = 'RMSE')
-densityplot(resamples_m2_10k, metric = 'RMSE')
-print(model_results_m2_10k)
 summary(resamples_m2_10k)
+
+resamples_m1_10k = resamples(model_list_m1_10k)
+dotplot(resamples_m1_10k, metric = 'RMSE')
+summary(resamples_m1_10k)
 
 stack_m2_10k = caretStack(
   model_list_m2_10k, 
   method = 'glmnet', metric = 'RMSE', 
   trControl = trainControl(method = "repeatedcv", savePredictions = "final", summaryFunction=defaultSummary),
   tuneLength=6)
-
 plot(stack_m2_10k)
 print(stack_m2_10k)
+stack_m2_10k_model = stack_m2_10k$model
+stack_m2_10k_model
+
+stack_m2_10k_result = predict(stack_m2_10k_model, data = faib_vri_true_m2_df)
+stack_m2_10k_result_MAE = MAE(stack_m2_10k_result, faib_vri_true_m2_df$wsvha_L)
+stack_m2_10k_result_RMSE = RMSE(stack_m2_10k_result, faib_vri_true_m2_df$wsvha_L)
+
 caretensemble_m2_10k_to_raster <- predict(covs_m2, stack_m2_10k)
-writeRaster(caretensemble_m2_10k_to_raster, filename = "./Results/caretensemble_m2_10k_to_raster.tif", overwrite=TRUE)
+writeRaster(caretensemble_m2_10k_to_raster, filename = "./results/caretensemble_m2_10k_to_raster.tif", overwrite=TRUE)
 plot(caretensemble_m2_10k_to_raster)
+
+par(mfrow = c(2,1))
+model1_ensemble = raster::raster("./results/model1_svmRadial_100m_linear.tif")
+model2_ensemble = raster::raster("./results/model2_svmRadial_100m_linear.tif")
+plot(model1_ensemble, main="Model1 NO-STEMS (Ensemble Net)", cex.main=0.9)
+hist(model1_ensemble, main="Model1 NO-STEMS (Ensemble Net)", cex.main=0.8, maxpixels=22000000) 
+plot(model2_ensemble, main="Model2 WITH-STEMS (Ensemble Net)", cex.main=0.8)
+hist(model2_ensemble, main="Model2 WITH-STEMS (Ensemble Net)", cex.main=0.8, maxpixels=22000000) 
 
 
 
 # glm Gamma & Gaussian fit
+tuneResult_GLM_m2_logLink_gamma <- glm(
+  formula = wsvha_L ~ lead_htop + elev + slope + asp_cos + asp_sin + species_class, 
+  family = Gamma(link = "log"),
+  data=faib_vri_true_m2_df)
+
 tuneResult_GLM_m1_logLink_gamma <- glm(
   formula = wsvha_L ~ lead_htop + stemsha_L + elev + slope + asp_cos + asp_sin + species_class, 
   family = Gamma(link = "log"),
   data=faib_vri_true_m1_df)
 
-tuneResult_GLM_m1_logLink_gauss <- glm(
+
+tuneResult_GLM_m2_logLink_gamma_train <- glm(
+  formula = wsvha_L ~ lead_htop + elev + slope + asp_cos + asp_sin + species_class, 
+  family = Gamma(link = "log"),
+  data=train_m2)
+
+tuneResult_GLM_m1_logLink_gamma_train <- glm(
   formula = wsvha_L ~ lead_htop + stemsha_L + elev + slope + asp_cos + asp_sin + species_class, 
-  family = gaussian(link = "log"),
-  data=faib_vri_true_m1_df)
+  family = Gamma(link = "log"),
+  data=train_m1)
+
+tunedModel_GLM_m1_logLink_gamma = predict(tuneResult_GLM_m1_logLink_gamma, data = faib_vri_true_m2_df)
+tunedModel_GLM_m1_logLink_gamma_MAE = MAE(tunedModel_GLM_m1_logLink_gamma, faib_vri_true_m2_df$wsvha_L)
+tunedModel_GLM_m1_logLink_gamma_RMSE = RMSE(tunedModel_GLM_m1_logLink_gamma, faib_vri_true_m2_df$wsvha_L)
+tunedModel_GLM_m1_logLink_gamma_test = predict(tuneResult_GLM_m1_logLink_gamma, data = test_m1)
+tunedModel_GLM_m1_logLink_gamma_test_MAE = MAE(tunedModel_GLM_m1_logLink_gamma_test, test_m1$wsvha_L)
+tunedModel_GLM_m1_logLink_gamma_test_RMSE = RMSE(tunedModel_GLM_m1_logLink_gamma_test, test_m1$wsvha_L)
+
+tunedModel_GLM_m2_logLink_gamma = predict(tuneResult_GLM_m2_logLink_gamma, data = faib_vri_true_m2_df)
+tunedModel_GLM_m2_logLink_gamma_MAE = MAE(tunedModel_GLM_m2_logLink_gamma, faib_vri_true_m2_df$wsvha_L)
+tunedModel_GLM_m2_logLink_gamma_RMSE = RMSE(tunedModel_GLM_m2_logLink_gamma, faib_vri_true_m2_df$wsvha_L)
+tunedModel_GLM_m2_logLink_gamma_test = predict(tuneResult_GLM_m2_logLink_gamma, data = test_m2)
+tunedModel_GLM_m2_logLink_gamma_test_MAE = MAE(tunedModel_GLM_m2_logLink_gamma_test, test_m2$wsvha_L)
+tunedModel_GLM_m2_logLink_gamma_test_RMSE = RMSE(tunedModel_GLM_m2_logLink_gamma_test, test_m2$wsvha_L)
+
+tuneResult_GLM_m1_logLink_gamma
+MAE(tunedModel_GLM_m1_logLink_gamma, faib_vri_true_m1_df$wsvha_L)
+RMSE(tunedModel_GLM_m1_logLink_gamma, faib_vri_true_m1_df$wsvha_L)
+MAE(tunedModel_GLM_m1_logLink_gamma_test, test_m1$wsvha_L)
+RMSE(tunedModel_GLM_m1_logLink_gamma_test, test_m1$wsvha_L)
+tunedModel_GLM_m1_logLink_gamma_test_RMSE/tunedModel_GLM_m1_logLink_gamma_RMSE
+
+tuneResult_GLM_m2_logLink_gamma
+MAE(tunedModel_GLM_m2_logLink_gamma, faib_vri_true_m2_df$wsvha_L)
+RMSE(tunedModel_GLM_m2_logLink_gamma, faib_vri_true_m2_df$wsvha_L)
+MAE(tunedModel_GLM_m2_logLink_gamma_test, test_m2$wsvha_L)
+RMSE(tunedModel_GLM_m2_logLink_gamma_test, test_m2$wsvha_L)
+tunedModel_GLM_m2_logLink_gamma_test_RMSE/tunedModel_GLM_m2_logLink_gamma_RMSE
+
 
 base::print(tuneResult_GLM_m1_logLink_gamma)
-base::print(tuneResult_GLM_m1_logLink_gauss)
 performance::model_performance(tuneResult_GLM_m1_logLink_gamma)
-performance::model_performance(tuneResult_GLM_m1_logLink_gauss)
 performance::performance_mae(tuneResult_GLM_m1_logLink_gamma)
-performance::performance_mae(tuneResult_GLM_m1_logLink_gauss)
 performance::performance_rmse(tuneResult_GLM_m1_logLink_gamma)
-performance::performance_rmse(tuneResult_GLM_m1_logLink_gauss)
-
+save(tuneResult_GLM_m2_logLink_gamma, file = "./models/tuneResult_GLM_m2_logLink_gamma.RData")
 save(tuneResult_GLM_m1_logLink_gamma, file = "./models/tuneResult_GLM_m1_logLink_gamma.RData")
-save(tuneResult_GLM_m1_logLink_gauss, file = "./models/tuneResult_GLM_m1_logLink_gauss.RData")
-tuneResult_GLM_m1_logLink_gamma_to_raster = raster::predict(covs_m1, tuneResult_GLM_m1_logLink_gamma)
-tuneResult_GLM_m1_logLink_gauss_to_raster = raster::predict(covs_m1, tuneResult_GLM_m1_logLink_gauss)
-writeRaster(tuneResult_GLM_m1_logLink_gamma_to_raster, filename = "./results/model2_glm_loglink_gamma.tif", overwrite=TRUE)
-writeRaster(tuneResult_GLM_m1_logLink_gauss_to_raster, filename = "./results/model2_glm_loglink_gauss.tif", overwrite=TRUE)
+tuneResult_GLM_m2_logLink_gamma_to_raster = raster::predict(covs_m2, tuneResult_GLM_m2_logLink_gamma, type="response")
+tuneResult_GLM_m1_logLink_gamma_to_raster = raster::predict(covs_m1, tuneResult_GLM_m1_logLink_gamma, type="response")
+
+
+writeRaster(tuneResult_GLM_m2_logLink_gamma_to_raster, filename = "./results/model2_glm_loglink_gamma.tif", overwrite=TRUE)
+writeRaster(tuneResult_GLM_m1_logLink_gamma_to_raster, filename = "./results/model1_glm_loglink_gamma.tif", overwrite=TRUE)
+model1_glm_loglink_gamma = raster::raster("./results/model1_glm_loglink_gamma.tif")
 model2_glm_loglink_gamma = raster::raster("./results/model2_glm_loglink_gamma.tif")
-model2_glm_loglink_gauss = raster::raster("./results/model2_glm_loglink_gauss.tif")
-graphics.off()
-plot(model2_glm_loglink_gamma, main="model2_glm_loglink_gamma)", cex.main=0.9)
-hist(model2_glm_loglink_gamma, main="model2_glm_loglink_gamma)", cex.main=0.8, maxpixels=22000000) 
-plot(model2_glm_loglink_gauss, main="model2_glm_loglink_gauss", cex.main=0.8)
-hist(model2_glm_loglink_gauss, main="model2_glm_loglink_gauss)", cex.main=0.8, maxpixels=22000000) 
+plot(model1_glm_loglink_gamma, main="Model1 NO-STEMS (GLM-Gamma)", cex.main=0.9)
+hist(model1_glm_loglink_gamma, main="Model1 NO-STEMS (GLM-Gamma)", cex.main=0.8, maxpixels=22000000) 
+plot(model2_glm_loglink_gauss, main="Model2 WITH-STEMS (GLM-Gamma)", cex.main=0.8)
+hist(model2_glm_loglink_gauss, main="Model2 WITH-STEMS (GLM-Gamma)", cex.main=0.8, maxpixels=22000000) 
 tuneResult_GLM_m1_logLink_gamma_to_raster_gaspard = raster::predict(covs_m1_gaspard, tuneResult_GLM_m1_logLink_gamma)
 tuneResult_GLM_m1_logLink_gamma_to_raster_quesnel = raster::predict(covs_m1_quesnel, tuneResult_GLM_m1_logLink_gamma)
 
 
 
+
 # e1071 - SVM radial
-tuneResult_svm_m2_full <- tune(svm, X_m2, y_m2,
+tuneResult_svm_m2_full <- tune(
+  svm, X_m2, y_m2,
+  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),
+  tunecontrol = tune.control(cross = 10),
+  preProcess = c("BoxCox","center","scale"))
+
+tuneResult_svm_m1_full <- tune(
+  svm, X_m1, y_m1,
   ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),
   tunecontrol = tune.control(cross = 10),
   preProcess = c("BoxCox","center","scale"))
 
 tunedModel_svm_m2_full <- tuneResult_svm_m2_full$best.model
+tunedModel_svm_m1_full <- tuneResult_svm_m1_full$best.model
 print(summary(tunedModel_svm_m2_full))
+print(summary(tunedModel_svm_m1_full))
 save(tunedModel_svm_m2_full, file = "./results/tunedModel_svm_m2_full.RData")
+save(tunedModel_svm_m1_full, file = "./results/tunedModel_svm_m1_full.RData")
 tunedModel_svm_m2 = predict(tunedModel_svm_m2_full, data=faib_vri_true_m2_df)
+tunedModel_svm_m1 = predict(tunedModel_svm_m1_full, data=faib_vri_true_m1_df)
 
 tuneResult_svm_m2_train <- tune(
   svm, X_train_m2, y_train_m2,
@@ -1079,24 +1232,47 @@ tuneResult_svm_m2_train <- tune(
   tunecontrol = tune.control(cross = 10),
   preProcess = c("BoxCox","center","scale"))
 
+tuneResult_svm_m1_train <- tune(
+  svm, X_train_m1, y_train_m1,
+  ranges = list(cost = c(5,7,15,20), gamma = 2^(-1:1)),
+  tunecontrol = tune.control(cross = 10),
+  preProcess = c("BoxCox","center","scale"))
+
 tunedModel_svm_m2_train <- tuneResult_svm_m2_train$best.model
-tunedModel_svm_m2_test = predict(tunedModel_svm_m2_train, data=test_m2)
+tunedModel_svm_m2_train <- tuneResult_svm_m2_train$best.model
+tunedModel_svm_m1_test = predict(tunedModel_svm_m2_train, data=test_m1)
+tunedModel_svm_m1_test = predict(tunedModel_svm_m2_train, data=test_m1)
 
 tunedModel_svm_m2_test_MAE = MAE(tunedModel_svm_m2_test, y_test_m2)
 tunedModel_svm_m2_test_RMSE = RMSE(tunedModel_svm_m2_test, y_test_m2)
 tunedModel_svm_m2_full_MAE = MAE(tunedModel_svm_m2, y_m2)
 tunedModel_svm_m2_full_RMSE = RMSE(tunedModel_svm_m2, y_m2)
+
+tunedModel_svm_m1_test_MAE = MAE(tunedModel_svm_m1_test, y_test_m1)
+tunedModel_svm_m1_test_RMSE = RMSE(tunedModel_svm_m1_test, y_test_m1)
+tunedModel_svm_m1_full_MAE = MAE(tunedModel_svm_m1, y_m1)
+tunedModel_svm_m1_full_RMSE = RMSE(tunedModel_svm_m1, y_m1)
+
+tunedModel_svm_m2_full
+R2(tunedModel_svm_m2, y_m2)
 MAE(tunedModel_svm_m2, y_m2)
 RMSE(tunedModel_svm_m2, y_m2)
 MAE(tunedModel_svm_m2_test, y_test_m2)
 RMSE(tunedModel_svm_m2_test, y_test_m2)
 tunedModel_svm_m2_full_RMSE/tunedModel_svm_m2_test_RMSE
 
+tunedModel_svm_m1_full
+R2(tunedModel_svm_m1, y_m1)
+MAE(tunedModel_svm_m1, y_m1)
+RMSE(tunedModel_svm_m1, y_m1)
+MAE(tunedModel_svm_m1_test, y_test_m1)
+RMSE(tunedModel_svm_m1_test, y_test_m1)
+tunedModel_svm_m1_full_RMSE/tunedModel_svm_m1_test_RMSE
+
 tuneResult_svm_m2_full$performances
 plot(tuneResult_svm_m2_full, type = "perspective", theta = 120, phi = 45)
 tunedModel_svm_m2_to_raster <- predict(covs_m2, tunedModel_svm_m2_full)
 writeRaster(tunedModel_svm_m2_to_raster, filename = "./results/tunedModel_svm_m2_to_raster.tif", overwrite=TRUE)
-
 
 
 # e1071 - SVM radial & epsilon tuned
@@ -1106,11 +1282,20 @@ tuneResult_svm_m2_full_eps <- tune(
   tunecontrol = tune.control(cross = 10),
   preProcess = c("BoxCox","center","scale"))
 
-tunedModel_svm_m2_full_eps <- tuneResult_svm_m2_full_eps$best.model
-print(summary(tunedModel_svm_m2_full_eps))
-save(tunedModel_svm_m2_full_eps, file = "./results/tunedModel_svm_m2_full_eps.RData")
+tuneResult_svm_m1_full_eps <- tune(
+  svm, X_m1, y_m1,
+  ranges = list(epsilon = seq(0.02,0.1,0.2), cost = c(1,5,7,15,20), gamma = 2^(-1:1)),
+  tunecontrol = tune.control(cross = 10),
+  preProcess = c("BoxCox","center","scale"))
 
+tunedModel_svm_m2_full_eps <- tuneResult_svm_m2_full_eps$best.model
+tunedModel_svm_m1_full_eps <- tuneResult_svm_m1_full_eps$best.model
+print(summary(tunedModel_svm_m2_full_eps))
+print(summary(tunedModel_svm_m1_full_eps))
+save(tunedModel_svm_m2_full_eps, file = "./results/tunedModel_svm_m2_full_eps.RData")
+save(tunedModel_svm_m1_full_eps, file = "./results/tunedModel_svm_m1_full_eps.RData")
 tunedModel_svm_m2_eps = predict(tunedModel_svm_m2_full_eps, data=faib_vri_true_m2_df)
+tunedModel_svm_m1_eps = predict(tunedModel_svm_m1_full_eps, data=faib_vri_true_m1_df)
 
 tuneResult_svm_m2_train_eps <- tune(
   svm, X_train_m2, y_train_m2,
@@ -1118,24 +1303,60 @@ tuneResult_svm_m2_train_eps <- tune(
   tunecontrol = tune.control(cross = 10),
   preProcess = c("BoxCox","center","scale"))
 
+tuneResult_svm_m1_train_eps <- tune(
+  svm, X_train_m1, y_train_m1,
+  ranges = list(epsilon = seq(0.02,0.1,0.2), cost = c(5,7,15,20), gamma = 2^(-1:1)),
+  tunecontrol = tune.control(cross = 10),
+  preProcess = c("BoxCox","center","scale"))
+
 tunedModel_svm_m2_train_eps <- tuneResult_svm_m2_train_eps$best.model
+tunedModel_svm_m1_train_eps <- tuneResult_svm_m1_train_eps$best.model
 tunedModel_svm_m2_test_eps = predict(tunedModel_svm_m2_train_eps, data=test_m2)
+tunedModel_svm_m1_test_eps = predict(tunedModel_svm_m1_train_eps, data=test_m1)
 
 tunedModel_svm_m2_test_eps_MAE = MAE(tunedModel_svm_m2_test_eps, y_test_m2)
 tunedModel_svm_m2_test_eps_RMSE = RMSE(tunedModel_svm_m2_test_eps, y_test_m2)
 tunedModel_svm_m2_full_eps_MAE = MAE(tunedModel_svm_m2_eps, y_m2)
 tunedModel_svm_m2_full_eps_RMSE = RMSE(tunedModel_svm_m2_eps, y_m2)
-MAE(tunedModel_svm_m2_test_eps, y_test_m2)
-RMSE(tunedModel_svm_m2_test_eps, y_test_m2)
+
+tunedModel_svm_m1_test_eps_MAE = MAE(tunedModel_svm_m1_test_eps, y_test_m1)
+tunedModel_svm_m1_test_eps_RMSE = RMSE(tunedModel_svm_m1_test_eps, y_test_m1)
+tunedModel_svm_m1_full_eps_MAE = MAE(tunedModel_svm_m1_eps, y_m1)
+tunedModel_svm_m1_full_eps_RMSE = RMSE(tunedModel_svm_m1_eps, y_m1)
+
+tunedModel_svm_m2_full_eps
+R2(tunedModel_svm_m2_eps, y_m2)
 MAE(tunedModel_svm_m2_eps, y_m2)
 RMSE(tunedModel_svm_m2_eps, y_m2)
+MAE(tunedModel_svm_m2_test_eps, y_test_m2)
+RMSE(tunedModel_svm_m2_test_eps, y_test_m2)
 tunedModel_svm_m2_full_eps_RMSE/tunedModel_svm_m2_test_eps_RMSE
+
+tunedModel_svm_m1_full_eps
+R2(tunedModel_svm_m1_eps, y_m1)
+MAE(tunedModel_svm_m1_eps, y_m1)
+RMSE(tunedModel_svm_m1_eps, y_m1)
+MAE(tunedModel_svm_m1_test_eps, y_test_m1)
+RMSE(tunedModel_svm_m1_test_eps, y_test_m1)
+tunedModel_svm_m1_full_eps_RMSE/tunedModel_svm_m1_test_eps_RMSE
 
 tuneResult_svm_m2_full_eps$performances
 plot(tuneResult_svm_m2_full, type = "perspective", theta = 120, phi = 45)
 tunedModel_svm_m2_eps_to_raster <- predict(covs_m2, tunedModel_svm_m2_full_eps)
-writeRaster(tunedModel_svm_m2_eps_to_raster, filename = "./Results/tunedModel_svm_m2_eps_to_raster.tif", overwrite=TRUE)
+writeRaster(tunedModel_svm_m2_eps_to_raster, filename = "./results/tunedModel_svm_m2_eps_to_raster.tif", overwrite=TRUE)
 
+tuneResult_svm_m1_full_eps$performances
+plot(tunedModel_svm_m1_train_eps, type = "perspective", theta = 120, phi = 45)
+tunedModel_svm_m1_eps_to_raster <- predict(covs_m1, tunedModel_svm_m1_full_eps)
+writeRaster(tunedModel_svm_m1_eps_to_raster, filename = "./results/tunedModel_svm_m1_eps_to_raster.tif", overwrite=TRUE)
+
+par(mfrow=c(2,1))
+plot(tunedModel_svm_m1_eps_to_raster, main="Model2 WITH-STEMS (SVM-Radial +eps.tune)", cex.main=0.9)
+hist(tunedModel_svm_m1_eps_to_raster, main="Model2 WITH-STEMS (SVM-Radial +eps.tune)", cex.main=0.8, maxpixels=22000000) 
+
+tunedModel_svm_m2_eps_to_raster$layer[tunedModel_svm_m2_eps_to_raster$layer < 0] = NA
+plot(tunedModel_svm_m2_eps_to_raster, main="Model1 NO-STEMS (SVM-Radial +eps.tune)", cex.main=0.8)
+hist(tunedModel_svm_m2_eps_to_raster, main="Model1 NO-STEMS (SVM-Radial +eps.tune)", cex.main=0.8, maxpixels=22000000) 
 
 # e1071 - randomforest
 tuneResult_rf_m2_full <- tune.randomForest(
@@ -1144,14 +1365,29 @@ tuneResult_rf_m2_full <- tune.randomForest(
   tunecontrol = tune.control(sampling = "cross", cross = 10),
   preProcess = c("BoxCox","center","scale"))
 
+tuneResult_rf_m1_full <- tune.randomForest(
+  X_m1, y_m1,
+  mtry = c(2:10), ntree = 50,
+  tunecontrol = tune.control(sampling = "cross", cross = 10),
+  preProcess = c("BoxCox","center","scale"))
+
 tunedModel_rf_m2_full <- tuneResult_rf_m2_full$best.model
+tunedModel_rf_m1_full <- tuneResult_rf_m1_full$best.model
 print(summary(tunedModel_rf_m2_full))
+print(summary(tunedModel_rf_m1_full))
 tunedModel_rf_m2_full
+tunedModel_rf_m1_full
 save(tunedModel_rf_m2_full, file = "./results/tunedModel_rf_m2_full.RData")
+save(tunedModel_rf_m1_full, file = "./results/tunedModel_rf_m1_full.RData")
 
 tunedModel_rf_m2 = predict(
   tunedModel_rf_m2_full,
   X_m2, y_m2,
+  type = "response")
+
+tunedModel_rf_m1 = predict(
+  tunedModel_rf_m1_full,
+  X_m1, y_m1,
   type = "response")
 
 tuneResult_rf_m2_train <- tune.randomForest(
@@ -1160,26 +1396,66 @@ tuneResult_rf_m2_train <- tune.randomForest(
   tunecontrol = tune.control(sampling = "cross", cross = 10),
   preProcess = c("BoxCox","center","scale"))
 
+tuneResult_rf_m1_train <- tune.randomForest(
+  X_train_m1, y_train_m1,
+  mtry = c(2:10), ntree = 50,
+  tunecontrol = tune.control(sampling = "cross", cross = 10),
+  preProcess = c("BoxCox","center","scale"))
+
 tunedModel_rf_m2_train <- tuneResult_rf_m2_train$best.model
 print(summary(tunedModel_rf_m2_train))
 tunedModel_rf_m2_train
+
+tunedModel_rf_m1_train <- tuneResult_rf_m1_train$best.model
+print(summary(tunedModel_rf_m1_train))
+tunedModel_rf_m1_train
 
 tunedModel_rf_m2_test = predict(
   tunedModel_rf_m2_train,
   X_test_m2, y_test_m2,
   type="response")
 
+tunedModel_rf_m1_test = predict(
+  tunedModel_rf_m1_train,
+  X_test_m1, y_test_m1,
+  type="response")
+
 tunedModel_rf_m2_test_MAE = MAE(tunedModel_rf_m2_test, y_test_m2)
 tunedModel_rf_m2_test_RMSE = RMSE(tunedModel_rf_m2_test, y_test_m2)
 tunedModel_rf_m2_full_MAE = MAE(tunedModel_rf_m2, y_m2)
 tunedModel_rf_m2_full_RMSE = RMSE(tunedModel_rf_m2, y_m2)
-MAE(tunedModel_rf_m2_test, y_test_m2)
-RMSE(tunedModel_rf_m2_test, y_test_m2)
+
+tunedModel_rf_m1_test_MAE = MAE(tunedModel_rf_m1_test, y_test_m2)
+tunedModel_rf_m1_test_RMSE = RMSE(tunedModel_rf_m1_test, y_test_m2)
+tunedModel_rf_m1_full_MAE = MAE(tunedModel_rf_m1, y_m2)
+tunedModel_rf_m1_full_RMSE = RMSE(tunedModel_rf_m1, y_m2)
+
 MAE(tunedModel_rf_m2, y_m2)
 RMSE(tunedModel_rf_m2, y_m2)
+MAE(tunedModel_rf_m2_test, y_test_m2)
+RMSE(tunedModel_rf_m2_test, y_test_m2)
+R2(tunedModel_rf_m2, y_m2)
 tunedModel_rf_m2_full_RMSE/tunedModel_rf_m2_test_RMSE
+
+MAE(tunedModel_rf_m1, y_m1)
+RMSE(tunedModel_rf_m1, y_m1)
+MAE(tunedModel_rf_m1_test, y_test_m1)
+RMSE(tunedModel_rf_m1_test, y_test_m1)
+R2(tunedModel_rf_m1, y_m1)
+tunedModel_rf_m1_full_RMSE/tunedModel_rf_m1_test_RMSE
 
 tuneResult_rf_m2_full$performances
 tunedModel_rf_m2_to_raster <- predict(covs_m2, tunedModel_rf_m2_full)
-writeRaster(tunedModel_rf_m2_to_raster, filename = "./Results/tunedModel_rf_m2_to_raster.tif", overwrite=TRUE)
+writeRaster(tunedModel_rf_m2_to_raster, filename = "./results/tunedModel_rf_m2_to_raster.tif", overwrite=TRUE)
+
+tuneResult_rf_m1_full$performances
+tunedModel_rf_m1_to_raster <- predict(covs_m1, tunedModel_rf_m1_full)
+writeRaster(tunedModel_rf_m1_to_raster, filename = "./results/tunedModel_rf_m1_to_raster.tif", overwrite=TRUE)
+
+par(mfrow=c(2,2))
+plot(tunedModel_rf_m1_to_raster, main="Model2 WITH-STEMS (Random Forest)", cex.main=0.9)
+hist(tunedModel_rf_m1_to_raster, main="Model2 WITH-STEMS (Random Forest)", cex.main=0.8, maxpixels=22000000) 
+
+plot(tunedModel_rf_m2_to_raster, main="Model1 NO-STEMS (Random Forest)", cex.main=0.8)
+hist(tunedModel_rf_m2_to_raster, main="Model1 NO-STEMS (Random Forest)", cex.main=0.8, maxpixels=22000000) 
 
