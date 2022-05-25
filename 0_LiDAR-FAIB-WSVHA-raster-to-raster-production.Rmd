@@ -46,7 +46,7 @@ The following markdown report provides a complete run-through and guide of a ras
 
 ![](images/graphical-abstract.png)
 
-## Import raster chunks
+## Import LiDAR: Load, list and merge chunks
 
 ```{r, eval=FALSE}
 zip_file_vh_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/VegHt.zip")
@@ -97,7 +97,7 @@ terra::plot(elev_rast_gaspard)
 terra::plot(elev_rast_quesnel)
 ```
 
-## Individual stem-detection: Variable window function
+## CHM-derived covariates: Variable window function
 
 ```{r, fig.show='hold', out.width="50%", rgl.static=TRUE, cache=TRUE}
 kernel <- matrix(1,3,3)
@@ -118,7 +118,7 @@ plot(heights, window_quan, type = "l",  ylim = c(0,12), xlab="point elevation (m
 plot(heights, window_plowright, type = "l", ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='Plowright, 2018')
 ```
 
-## Individual stem-detection: Watershed \> 95% CHM
+## CHM-derived covariates: Stem-detection & 95% height
 
 ```{r, eval=FALSE}
 lead_htop_raster_1m_smoothed_quesnel = focal(lead_htop_rast_quesnel, w = kernel, fun = median, na.rm = TRUE) %>% raster()
@@ -161,39 +161,7 @@ raster::writeRaster(stemsha_L_ttops_100cell_quesnel, filename = "/media/seamus/1
 raster::writeRaster(stemsha_L_ttops_100cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_100cell_gaspard.tif", overwrite=TRUE)
 ```
 
-## Import species layers: VRI rasterization
-
-```{r, eval=FALSE}
-lead_htop_rast_20cell_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_20cell_quesnel.tif")
-lead_htop_rast_20cell_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_20cell_gaspard.tif")
-stemsha_L_rast_20cell_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_20cell_quesnel.tif")
-stemsha_L_rast_20cell_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_20cell_gaspard.tif")
-crs(lead_htop_rast_20cell_quesnel) = "epsg:3005"
-crs(lead_htop_rast_20cell_gaspard) = "epsg:3005"
-lead_htop_sv_20cell_quesnel = as.polygons(lead_htop_rast_20cell_quesnel)
-lead_htop_sv_20cell_gaspard = as.polygons(lead_htop_rast_20cell_gaspard)
-lead_htop_sf_20cell_quesnel = sf::st_as_sf(lead_htop_sv_20cell_quesnel)
-lead_htop_sf_20cell_gaspard = sf::st_as_sf(lead_htop_sv_20cell_gaspard)
-
-vri_sf = read_sf("/media/seamus/128GB_WORKD/data/vector/vri/vri_bc_2020_rank1.shp")
-vri_species = vri_sf[c("SPECIES__1", "SPECIES_CD", "SPECIES_PC")]
-vri_species_aoi =  dplyr::filter(vri_species, SPECIES__1=='PL' | SPECIES__1=='PLI' | SPECIES__1=='FD' | SPECIES__1=='FDI' | SPECIES__1=='SB' | SPECIES__1=='SE' | SPECIES__1=='SW' | SPECIES__1=='SX' | SPECIES__1=='CW' | SPECIES__1=='HW' | SPECIES__1=='BL' | SPECIES__1=='LW')
-vri_species_aoi = vri_species_aoi[!(vri_species_aoi$SPECIES__1 == 'FD' & vri_species_aoi$SPECIES_PC >= 50 | vri_species_aoi$SPECIES__1 == 'FDI' & vri_species_aoi$SPECIES_PC >=50),]
-vri_species_aoi$SPECIES__1 = dplyr::recode(vri_species_aoi$SPECIES__1, PL = 0, PLI = 0, SB = 1, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2, CW = 3, HW = 4, BL = 5, LW = 6)
-vri_species_aoi = dplyr::rename(vri_species_aoi, species_class = SPECIES__1)
-vri_species_aoi = vri_species_aoi["species_class"]
-vri_species_aoi_sf = sf::st_as_sf(vri_species_aoi)
-vri_species_aoi_quesnel = st_intersection(vri_species_aoi_sf, st_make_valid(lead_htop_sf_20cell_quesnel))
-vri_species_aoi_gaspard = st_intersection(vri_species_aoi_sf, st_make_valid(lead_htop_sf_20cell_gaspard))
-species_class_rast_quesnel = terra::rasterize(vect(vri_species_aoi_quesnel), lead_htop_rast_20cell_quesnel, field = "species_class", touches = TRUE)
-species_class_rast_gaspard = terra::rasterize(vect(vri_species_aoi_gaspard), lead_htop_rast_20cell_gaspard, field = "species_class", touches = TRUE)
-species_class_raster_quesnel = raster::raster(species_class_rast_quesnel)
-species_class_raster_gaspard = raster::raster(species_class_rast_gaspard)
-raster::writeRaster(species_class_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/species/species_class_raster_quesnel.tif", overwrite=TRUE)
-raster::writeRaster(species_class_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/species/species_class_raster_gaspard.tif", overwrite=TRUE)
-```
-
-## Derive DEM-based terrain rasters
+## DEM-derived covariates: Terrain rasters
 
 ```{r, eval=FALSE}
 terra::crs(elev_rast_quesnel) = "epsg:3005"
@@ -238,7 +206,39 @@ writeRaster(species_class_rast_quesnel, filename = "/media/seamus/128GB_WORKD/da
 writeRaster(species_class_rast_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/species/species_class_raster_gaspard.tif", overwrite=TRUE)
 ```
 
-## Import approved mask layers
+## Species covariates: VRI rasterization
+
+```{r, eval=FALSE}
+lead_htop_rast_20cell_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_20cell_quesnel.tif")
+lead_htop_rast_20cell_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_20cell_gaspard.tif")
+stemsha_L_rast_20cell_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_20cell_quesnel.tif")
+stemsha_L_rast_20cell_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_20cell_gaspard.tif")
+crs(lead_htop_rast_20cell_quesnel) = "epsg:3005"
+crs(lead_htop_rast_20cell_gaspard) = "epsg:3005"
+lead_htop_sv_20cell_quesnel = as.polygons(lead_htop_rast_20cell_quesnel)
+lead_htop_sv_20cell_gaspard = as.polygons(lead_htop_rast_20cell_gaspard)
+lead_htop_sf_20cell_quesnel = sf::st_as_sf(lead_htop_sv_20cell_quesnel)
+lead_htop_sf_20cell_gaspard = sf::st_as_sf(lead_htop_sv_20cell_gaspard)
+
+vri_sf = read_sf("/media/seamus/128GB_WORKD/data/vector/vri/vri_bc_2020_rank1.shp")
+vri_species = vri_sf[c("SPECIES__1", "SPECIES_CD", "SPECIES_PC")]
+vri_species_aoi =  dplyr::filter(vri_species, SPECIES__1=='PL' | SPECIES__1=='PLI' | SPECIES__1=='FD' | SPECIES__1=='FDI' | SPECIES__1=='SB' | SPECIES__1=='SE' | SPECIES__1=='SW' | SPECIES__1=='SX' | SPECIES__1=='CW' | SPECIES__1=='HW' | SPECIES__1=='BL' | SPECIES__1=='LW')
+vri_species_aoi = vri_species_aoi[!(vri_species_aoi$SPECIES__1 == 'FD' & vri_species_aoi$SPECIES_PC >= 50 | vri_species_aoi$SPECIES__1 == 'FDI' & vri_species_aoi$SPECIES_PC >=50),]
+vri_species_aoi$SPECIES__1 = dplyr::recode(vri_species_aoi$SPECIES__1, PL = 0, PLI = 0, SB = 1, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2, CW = 3, HW = 4, BL = 5, LW = 6)
+vri_species_aoi = dplyr::rename(vri_species_aoi, species_class = SPECIES__1)
+vri_species_aoi = vri_species_aoi["species_class"]
+vri_species_aoi_sf = sf::st_as_sf(vri_species_aoi)
+vri_species_aoi_quesnel = st_intersection(vri_species_aoi_sf, st_make_valid(lead_htop_sf_20cell_quesnel))
+vri_species_aoi_gaspard = st_intersection(vri_species_aoi_sf, st_make_valid(lead_htop_sf_20cell_gaspard))
+species_class_rast_quesnel = terra::rasterize(vect(vri_species_aoi_quesnel), lead_htop_rast_20cell_quesnel, field = "species_class", touches = TRUE)
+species_class_rast_gaspard = terra::rasterize(vect(vri_species_aoi_gaspard), lead_htop_rast_20cell_gaspard, field = "species_class", touches = TRUE)
+species_class_raster_quesnel = raster::raster(species_class_rast_quesnel)
+species_class_raster_gaspard = raster::raster(species_class_rast_gaspard)
+raster::writeRaster(species_class_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/species/species_class_raster_quesnel.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/species/species_class_raster_gaspard.tif", overwrite=TRUE)
+```
+
+## Mask layers: Merging and clipping
 
 ```{r, eval=FALSE}
 mask_burn2017 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2017.shp")
@@ -300,6 +300,8 @@ masks_raster_quesnel = raster::raster(masks_rast_quesnel)
 masks_raster_gaspard = raster::raster(masks_rast_gaspard)
 writeRaster(masks_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/mask_raster_quesnel.tif", overwrite=TRUE)
 writeRaster(masks_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/mask_raster_gaspard.tif", overwrite=TRUE)
+ggplot(masks_sf_gaspard) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+ggplot(masks_sf_quesnel) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
 ```
 
 ```{r, fig.show='hold', out.width="50%", echo=FALSE}
@@ -313,7 +315,7 @@ ggplot(masks_sf_gaspard) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
 ggplot(masks_sf_quesnel) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
 ```
 
-## Apply mask and prepare covariate stacks
+## Mask layers: Apply masking & stack covariates
 
 ```{r, eval=FALSE}
 masks_rast_quesnel = terra::resample(masks_rast_quesnel, lead_htop_rast_20cell_quesnel, method="near")
@@ -444,6 +446,8 @@ covs_m1 = raster::stack(
   lead_htop_raster,
   species_class_raster,
   stemsha_L_raster)
+
+rasterVis::levelplot(covs_m1)
 ```
 
 ```{r, echo=FALSE}
@@ -658,6 +662,8 @@ terra::plot(aspect_rast_quesnel, main = "aspect (Quesnel)")
 tera::plot(species_class_rast_quesnel, main = "species_class (Quesnel)")
 ```
 
+## Tidy plot data: Bootstrapped resampling
+
 ```{r, eval=FALSE}
 faib_psp <- read.csv("/media/seamus/128GB_WORKD/EFI-TCC/0_Caret_Predict_to_writeRasterOutput/Data/FAIB_PSP_20211028.csv")
 faib_psp = subset(faib_psp, util == '12.5')
@@ -673,16 +679,26 @@ faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
 faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
 faib_psp = subset(faib_psp, stemsha_L < 834)
 faib_psp = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
-
 stemsha_L_raster_df = as.data.frame(rasterToPoints(stemsha_L_raster))
 dist.fun = approxfun(density(stemsha_L_raster_df$stemsha_L))
-faib_psp = faib_psp %>% slice_sample(n=1186, weight_by = dist.fun(faib_psp$stemsha_L), replace = T)
-psych::describe(faib_psp$stemsha_L)
-hist(faib_psp$stemsha_L)
+faib_psp = faib_psp %>% 
+  slice_sample(n=1186, weight_by = dist.fun(faib_psp$stemsha_L), replace = T)
 
+truehist(faib_psp$stemsha_L, main="Stems/ha (faib)", maxpixels=22000000)
+hist(stemsha_L_raster, main="Stems/ha (all sites)", maxpixels=22000000)
+hist(stemsha_L_raster_gaspard, main="Stems/ha (Gaspard)", maxpixels=22000000)
+hist(stemsha_L_raster_quesnel, main="Stems/ha (Quesnel)", maxpixels=22000000)
+```
+
+![](data_quesnel_gaspard/new_stems_faib_v_rast.png)
+
+## Tidy plot data: Data cleaning & training-test split
+
+```{r, eval=FALSE}
 faib_psp$elev = as.numeric(faib_psp$elev)
 faib_psp$slope = as.numeric(faib_psp$slope)
-faib_psp$aspect = as.numeric(faib_psp$aspect)
+faib_psp$asp_cos = as.numeric(faib_psp$asp_cos)
+faib_psp$asp_sin = as.numeric(faib_psp$asp_sin)
 faib_psp$lead_htop = as.numeric(faib_psp$lead_htop)
 faib_psp$species_class = as.numeric(faib_psp$species_class)
 faib_psp$stemsha_L = as.numeric(faib_psp$stemsha_L)
@@ -690,9 +706,6 @@ faib_psp$wsvha_L = as.numeric(faib_psp$wsvha_L)
 
 faib_psp$elev[faib_psp$elev <= 0] = NA
 faib_psp$slope[faib_psp$slope <= 0] = NA
-faib_psp$aspect[faib_psp$aspect <= 0] = NA
-faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
-faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
 faib_psp$lead_htop[faib_psp$lead_htop < 2] = NA
 faib_psp$stemsha_L[faib_psp$stemsha_L <= 0] = NA
 faib_psp$wsvha_L[faib_psp$wsvha_L <= 0] = NA
@@ -726,7 +739,27 @@ X_m2 = faib_vri_true_m2_df[,-7]
 y_m2 = faib_vri_true_m2_df[,7]
 ```
 
-```{r, fig.show='hold', out.width="25%"}
+```{r, echo=FALSE}
+faib_psp <- read.csv("/media/seamus/128GB_WORKD/EFI-TCC/0_Caret_Predict_to_writeRasterOutput/Data/FAIB_PSP_20211028.csv")
+faib_psp = subset(faib_psp, util == '12.5')
+faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
+faib_psp =  subset(faib_psp, 
+    spc_live1=='PL' | spc_live1=='PLI' | spc_live1=='FD'| spc_live1=='FDI' | 
+    spc_live1=='SB' | spc_live1=='SE' | spc_live1=='SW' | spc_live1=='SX' | 
+    spc_live1=='CW' | spc_live1=='HW' | spc_live1=='BL' | spc_live1=='LW')
+faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, 
+  PL = 1, PLI = 1, SB = 2, SE = 2, SX = 2, 
+  FD = 3, FDI = 3, CW = 3, HW = 4, BL = 5, LW = 6)
+faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
+faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
+faib_psp = subset(faib_psp, stemsha_L < 834)
+faib_psp = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
+print(as_tibble(faib_psp), n = 10)
+```
+
+## Exploratory data analysis: Visualize distributions
+
+```{r, eval=FALSE}
 truehist(faib_vri_true_m1_df$elev, main="DEM (faib)", maxpixels=22000000)
 hist(elev_raster, main="DEM (all sites)", maxpixels=22000000)
 hist(elev_raster_gaspard, main="DEM (Gaspard)", maxpixels=22000000)
@@ -758,7 +791,13 @@ hist(lead_htop_raster_gaspard, main="CHM 95th% (Gaspard)", maxpixels=22000000)
 hist(lead_htop_raster_quesnel, main="CHM 95th% (Quesnel)", maxpixels=22000000) 
 ```
 
-```{r, fig.show='hold', out.width="25%"}
+![](results/hist_faib_predictors_1.png)
+
+![](results/hist_faib_predictors_2.png)
+
+## Exploratory data analysis: Visualize trends in variance
+
+```{r, eval=FALSE, echo=FALSE}
 elev_wsvha_lm = lm(wsvha_L ~ elev, data = faib_vri_true_m1_df)
 slope_wsvha_lm = lm(wsvha_L ~ slope, data = faib_vri_true_m1_df)
 asp_cos_wsvha_lm = lm(wsvha_L ~ asp_cos, data = faib_vri_true_m1_df)
@@ -853,6 +892,8 @@ plot(species_class_wsvha_lm, which=1,
 car::residualPlots(elev_wsvha_lm, terms= ~ 1 | species_class, cex=0.1, pch=19) # plot vs. yhat grouping by type
 ```
 
+## Modelling: Fit, cross-validate and tune models
+
 ```{r, eval=FALSE}
 tuneResult_rf_m2_full <- tune.randomForest(
   X_m2, y_m2,
@@ -910,20 +951,15 @@ tuneResult_rf_m2_full$performances
 tuneResult_rf_m1_full$performances
 tunedModel_rf_m2_to_raster <- predict(covs_m2, tunedModel_rf_m2_full)
 tunedModel_rf_m1_to_raster <- predict(covs_m1, tunedModel_rf_m1_full)
-writeRaster(tunedModel_rf_m2_to_raster, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/wsvha_rf_m2.tif", overwrite=TRUE)
-writeRaster(tunedModel_rf_m1_to_raster, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/wsvha_rf_m1.tif", overwrite=TRUE)
+writeRaster(tunedModel_rf_m2_to_raster, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/wsvha_rf_m2_20cell.tif", overwrite=TRUE)
+writeRaster(tunedModel_rf_m1_to_raster, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/wsvha_rf_m1_20cell.tif", overwrite=TRUE)
 ```
 
 ```{r, fig.show='hold', out.width="50%", echo=FALSE}
-print(summary(tunedModel_rf_m2_train))
-print(summary(tunedModel_rf_m1_train))
-tunedModel_rf_m2_train
-tunedModel_rf_m1_train
-tuneResult_rf_m2_full$performances
-tuneResult_rf_m1_full$performances
-
-plot(tunedModel_rf_m1_to_raster, main="Model2 WITH-STEMS (Random Forest)", cex.main=0.9)
-hist(tunedModel_rf_m1_to_raster, main="Model2 WITH-STEMS (Random Forest)", cex.main=0.8, maxpixels=22000000) 
-plot(tunedModel_rf_m2_to_raster, main="Model1 NO-STEMS (Random Forest)", cex.main=0.8)
-hist(tunedModel_rf_m2_to_raster, main="Model1 NO-STEMS (Random Forest)", cex.main=0.8, maxpixels=22000000) 
+wsvha_rf_m2_20cell = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/wsvha_rf_m2_20cell.tif")
+wsvha_rf_m1_20cell = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/wsvha_rf_m1_20cell.tif")
+plot(wsvha_rf_m1_20cell, main="Model2 WITH-STEMS (Random Forest)", cex.main=0.9)
+hist(wsvha_rf_m1_20cell, main="Model2 WITH-STEMS (Random Forest)", cex.main=0.8, maxpixels=22000000) 
+plot(wsvha_rf_m2_20cell, main="Model1 NO-STEMS (Random Forest)", cex.main=0.8)
+hist(wsvha_rf_m2_20cell, main="Model1 NO-STEMS (Random Forest)", cex.main=0.8, maxpixels=22000000) 
 ```

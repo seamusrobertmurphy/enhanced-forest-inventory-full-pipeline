@@ -18,3 +18,17 @@ conflicted
 RColorBrewer
 tmap
 tmaptools
+dplyr
+ggplot2
+lattice
+caret
+caretEnsemble
+ForestTools
+randomForest
+e1071
+rgdal
+rgeos
+Rcpp
+MASS
+gdalUtils
+gdalUtilities
