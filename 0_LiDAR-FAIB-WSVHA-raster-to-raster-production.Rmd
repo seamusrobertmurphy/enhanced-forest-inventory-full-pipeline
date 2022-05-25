@@ -42,9 +42,11 @@ set.seed(123)
 
 ## Action
 
-The following markdown report provides a complete run-through and guide of a raster-to-raster workflow to generating Whole Stem Volume (m^3/ha: WSVHA) raster estimates from initial phases of importing liDAR tiles, to deriving stem-detection map and a 95% canopy height model, to generating and masking DEM-based and species covariates, to fitting and training models with faib.csv data, to finally making spatial predictions using raster stack of covariates. 
+The following markdown report provides a complete run-through and guide of a raster-to-raster workflow to generating Whole Stem Volume (m\^3/ha: WSVHA) raster estimates from initial phases of importing liDAR tiles, to deriving stem-detection map and a 95% canopy height model, to generating and masking DEM-based and species covariates, to fitting and training models with faib.csv data, to finally making spatial predictions using raster stack of covariates. The graphical abstract below is offered as reference guide.
 
-## Import raster tiles; All sites
+![](images/graphical-abstract.png)
+
+## Import raster chunks
 
 ```{r, eval=FALSE}
 zip_file_vh_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/VegHt.zip")
@@ -94,9 +96,8 @@ elev_rast_gaspard = terra::rast(elev_raster_gaspard)
 terra::plot(elev_rast_gaspard)
 terra::plot(elev_rast_quesnel)
 ```
-## Derive CHM-based covariates using stem-detection and custom variable window function
 
-### Variable window function
+## Individual stem-detection: Variable window function
 
 ```{r, fig.show='hold', out.width="50%", rgl.static=TRUE, cache=TRUE}
 kernel <- matrix(1,3,3)
@@ -116,6 +117,8 @@ window_plowright <- wf_plowright(heights)
 plot(heights, window_quan, type = "l",  ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='Quan, 2022')
 plot(heights, window_plowright, type = "l", ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='Plowright, 2018')
 ```
+
+## Individual stem-detection: Watershed \> 95% CHM
 
 ```{r, eval=FALSE}
 lead_htop_raster_1m_smoothed_quesnel = focal(lead_htop_rast_quesnel, w = kernel, fun = median, na.rm = TRUE) %>% raster()
@@ -158,6 +161,8 @@ raster::writeRaster(stemsha_L_ttops_100cell_quesnel, filename = "/media/seamus/1
 raster::writeRaster(stemsha_L_ttops_100cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_100cell_gaspard.tif", overwrite=TRUE)
 ```
 
+## Import species layers: VRI rasterization
+
 ```{r, eval=FALSE}
 lead_htop_rast_20cell_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_20cell_quesnel.tif")
 lead_htop_rast_20cell_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_20cell_gaspard.tif")
@@ -187,6 +192,8 @@ species_class_raster_gaspard = raster::raster(species_class_rast_gaspard)
 raster::writeRaster(species_class_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/species/species_class_raster_quesnel.tif", overwrite=TRUE)
 raster::writeRaster(species_class_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/species/species_class_raster_gaspard.tif", overwrite=TRUE)
 ```
+
+## Derive DEM-based terrain rasters
 
 ```{r, eval=FALSE}
 terra::crs(elev_rast_quesnel) = "epsg:3005"
@@ -231,7 +238,9 @@ writeRaster(species_class_rast_quesnel, filename = "/media/seamus/128GB_WORKD/da
 writeRaster(species_class_rast_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/species/species_class_raster_gaspard.tif", overwrite=TRUE)
 ```
 
-```{r}
+## Import approved mask layers
+
+```{r, eval=FALSE}
 mask_burn2017 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2017.shp")
 mask_burn2018 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2018.shp")
 mask_burn2021 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2021.shp")
@@ -241,7 +250,6 @@ mask_burn2021 = mask_burn2021["BurnSev"]
 mask_burn2017 = dplyr::filter(mask_burn2017, BurnSev == 'High')
 mask_burn2018 = dplyr::filter(mask_burn2018, BurnSev == 'High')
 mask_burn2021 = dplyr::filter(mask_burn2021, BurnSev == 'High')
-
 mask_burn2017_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2017), lead_htop_sf_20cell_quesnel)
 mask_burn2017_gaspard = sf::st_intersection(sf::st_make_valid(mask_burn2017), lead_htop_sf_20cell_gaspard)
 mask_burn2018_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2018), lead_htop_sf_20cell_quesnel)
@@ -290,10 +298,24 @@ masks_rast_quesnel = rasterize(vect(masks_sf_quesnel), lead_htop_rast_20cell_que
 masks_rast_gaspard = rasterize(vect(masks_sf_gaspard), lead_htop_rast_20cell_gaspard, touches = TRUE)
 masks_raster_quesnel = raster::raster(masks_rast_quesnel)
 masks_raster_gaspard = raster::raster(masks_rast_gaspard)
-
 writeRaster(masks_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/mask_raster_quesnel.tif", overwrite=TRUE)
 writeRaster(masks_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/mask_raster_gaspard.tif", overwrite=TRUE)
+```
 
+```{r, fig.show='hold', out.width="50%", echo=FALSE}
+masks_raster_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc//mask/mask_raster_quesnel.tif")
+masks_raster_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/mask/mask_raster_gaspard.tif")
+masks_sv_quesnel = as.polygons(masks_raster_quesnel)
+masks_sv_gaspard = as.polygons(masks_raster_gaspard)
+masks_sf_quesnel = sf::st_as_sf(masks_sv_quesnel)
+masks_sf_gaspard = sf::st_as_sf(masks_sv_gaspard)
+ggplot(masks_sf_gaspard) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+ggplot(masks_sf_quesnel) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+```
+
+## Apply mask and prepare covariate stacks
+
+```{r, eval=FALSE}
 masks_rast_quesnel = terra::resample(masks_rast_quesnel, lead_htop_rast_20cell_quesnel, method="near")
 masks_rast_gaspard = terra::resample(masks_rast_gaspard, lead_htop_rast_20cell_gaspard, method="near")
 lead_htop_rast_20cell_quesnel = mask(lead_htop_rast_20cell_quesnel, masks_rast_quesnel, inverse=TRUE)
@@ -325,24 +347,6 @@ writeRaster(stemsha_L_rast_20cell_quesnel, filename = "/media/seamus/128GB_WORKD
 writeRaster(stemsha_L_rast_20cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/stemsha_L_rast_20cell_gaspard.tif", overwrite=TRUE)
 writeRaster(lead_htop_rast_20cell_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/lead_htop_rast_20cell_quesnel.tif", overwrite=TRUE)
 writeRaster(lead_htop_rast_20cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/lead_htop_rast_20cell_gaspard.tif", overwrite=TRUE)
-```
-
-```{r, eval=FALSE}
-names(elev_rast_quesnel) = "elev"
-names(slope_rast_quesnel) = "slope"
-names(asp_cos_rast_quesnel) = "asp_cos"
-names(asp_sin_rast_quesnel) = "asp_sin"
-names(species_class_rast_quesnel) = "species_class"
-names(stemsha_L_rast_20cell_quesnel) = "stemsha_L"
-names(lead_htop_rast_20cell_quesnel) = "lead_htop"
-
-names(elev_rast_gaspard) = "elev"
-names(slope_rast_gaspard) = "slope"
-names(asp_cos_rast_gaspard) = "asp_cos"
-names(asp_sin_rast_gaspard) = "asp_sin"
-names(species_class_rast_gaspard) = "species_class"
-names(stemsha_L_rast_20cell_gaspard) = "stemsha_L"
-names(lead_htop_rast_20cell_gaspard) = "lead_htop"
 
 elev_raster_quesnel = raster::raster(elev_rast_quesnel)
 slope_raster_quesnel = raster::raster(slope_rast_quesnel)
@@ -442,8 +446,199 @@ covs_m1 = raster::stack(
   stemsha_L_raster)
 ```
 
+```{r, echo=FALSE}
+elev_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/elev_raster_20cell_quesnel.tif")
+slope_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/slope_raster_20cell_quesnel.tif")
+asp_cos_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/asp_cos_raster_20cell_quesnel.tif")
+asp_sin_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/asp_sin_raster_20cell_quesnel.tif")
+species_class_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/species_class_raster_20cell_quesnel.tif")
+stemsha_L_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/stemsha_L_raster_20cell_quesnel.tif")
+lead_htop_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/lead_htop_raster_20cell_quesnel.tif")
 
-```{r, fig.show='hold', out.width="25%", echo=FALSE}
+elev_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/elev_raster_20cell_gaspard.tif")
+slope_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/slope_raster_20cell_gaspard.tif")
+asp_cos_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/asp_cos_raster_20cell_gaspard.tif")
+asp_sin_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/asp_sin_raster_20cell_gaspard.tif")
+species_class_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/species_class_raster_20cell_gaspard.tif")
+stemsha_L_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/stemsha_L_raster_20cell_gaspard.tif")
+lead_htop_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/lead_htop_raster_20cell_gaspard.tif")
+
+elev_raster = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/elev_raster_20cell_allSites.tif")
+slope_raster = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/slope_raster_20cell_allSites.tif")
+asp_cos_raster = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/asp_cos_raster_20cell_allSites.tif")
+asp_sin_raster = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/asp_sin_raster_20cell_allSites.tif")
+species_class_raster = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/species_class_raster_20cell_allSites.tif")
+stemsha_L_raster = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/stemsha_L_raster_20cell_allSites.tif")
+lead_htop_raster = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/masked-covariates/lead_htop_raster_20cell_allSites.tif")
+
+elev_rast_gaspard = terra::rast(elev_raster_gaspard)
+slope_rast_gaspard = terra::rast(slope_raster_gaspard)
+asp_cos_rast_gaspard = terra::rast(asp_cos_raster_gaspard)
+asp_sin_rast_gaspard = terra::rast(asp_sin_raster_gaspard)
+species_class_rast_gaspard = terra::rast(species_class_raster_gaspard)
+stemsha_L_rast_gaspard = terra::rast(stemsha_L_raster_gaspard)
+lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
+
+elev_rast_quesnel = terra::rast(elev_raster_quesnel)
+slope_rast_quesnel = terra::rast(slope_raster_quesnel)
+asp_cos_rast_quesnel = terra::rast(asp_cos_raster_quesnel)
+asp_sin_rast_quesnel = terra::rast(asp_sin_raster_quesnel)
+species_class_rast_quesnel = terra::rast(species_class_raster_quesnel)
+stemsha_L_rast_quesnel = terra::rast(stemsha_L_raster_quesnel)
+lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
+
+elev_rast = terra::rast(elev_raster)
+slope_rast = terra::rast(slope_raster)
+asp_cos_rast = terra::rast(asp_cos_raster)
+asp_sin_rast = terra::rast(asp_sin_raster)
+species_class_rast = terra::rast(species_class_raster)
+stemsha_L_rast = terra::rast(stemsha_L_raster)
+lead_htop_rast = terra::rast(lead_htop_raster)
+
+elev_rast = terra::rast(elev_raster)
+slope_rast = terra::rast(slope_raster)
+asp_cos_rast = terra::rast(asp_cos_raster)
+asp_sin_rast = terra::rast(asp_sin_raster)
+species_class_rast = terra::rast(species_class_raster)
+stemsha_L_rast = terra::rast(stemsha_L_raster)
+lead_htop_rast = terra::rast(lead_htop_raster)
+
+lead_htop_rast_quesnel = terra::resample(lead_htop_rast_quesnel, elev_rast_quesnel)
+lead_htop_rast_gaspard = terra::resample(lead_htop_rast_gaspard, elev_rast_gaspard)
+lead_htop_rast = terra::resample(lead_htop_rast, elev_rast)
+stemsha_L_rast_quesnel = terra::resample(stemsha_L_rast_quesnel, elev_rast_quesnel)
+stemsha_L_rast_gaspard = terra::resample(stemsha_L_rast_gaspard, elev_rast_gaspard)
+stemsha_L_rast = terra::resample(stemsha_L_rast, elev_rast)
+species_class_rast_quesnel = terra::resample(species_class_rast_quesnel, elev_rast_quesnel)
+species_class_rast_gaspard = terra::resample(species_class_rast_gaspard, elev_rast_gaspard)
+species_class = terra::resample(species_class_rast, elev_rast)
+elev_rast_quesnel = terra::mask(elev_rast_quesnel, lead_htop_rast_quesnel)
+elev_rast_gaspard = terra::mask(elev_rast_gaspard, lead_htop_rast_gaspard)
+elev_rast = terra::mask(elev_rast, lead_htop_rast)
+slope_rast_quesnel = terra::mask(slope_rast_quesnel, lead_htop_rast_quesnel)
+slope_rast_gaspard = terra::mask(slope_rast_gaspard, lead_htop_rast_gaspard)
+slope_rast = terra::mask(slope_rast, lead_htop_rast)
+asp_cos_rast_quesnel = terra::mask(asp_cos_rast_quesnel, lead_htop_rast_quesnel)
+asp_cos_rast_gaspard = terra::mask(asp_cos_rast_gaspard, lead_htop_rast_gaspard)
+asp_cos_rast = terra::mask(asp_cos_rast, lead_htop_rast)
+asp_sin_rast_quesnel = terra::mask(asp_sin_rast_quesnel, lead_htop_rast_quesnel)
+asp_sin_rast_gaspard = terra::mask(asp_sin_rast_gaspard, lead_htop_rast_gaspard)
+asp_sin_rast = terra::mask(asp_sin_rast, lead_htop_rast)
+species_class_rast_quesnel = terra::mask(species_class_rast_quesnel, lead_htop_rast_quesnel)
+species_class_rast_gaspard = terra::mask(species_class_rast_gaspard, lead_htop_rast_gaspard)
+species_class_rast = terra::mask(species_class_rast, lead_htop_rast)
+
+names(elev_rast) = "elev"
+names(slope_rast) = "slope"
+names(asp_cos_rast) = "asp_cos"
+names(asp_sin_rast) = "asp_sin"
+names(species_class) = "species_class"
+names(stemsha_L_rast) = "stemsha_L"
+names(lead_htop_rast) = "lead_htop"
+
+names(elev_rast_quesnel) = "elev"
+names(slope_rast_quesnel) = "slope"
+names(asp_cos_rast_quesnel) = "asp_cos"
+names(asp_sin_rast_quesnel) = "asp_sin"
+names(species_class_rast_quesnel) = "species_class"
+names(stemsha_L_rast_quesnel) = "stemsha_L"
+names(lead_htop_rast_quesnel) = "lead_htop"
+
+names(elev_rast_gaspard) = "elev"
+names(slope_rast_gaspard) = "slope"
+names(asp_cos_rast_gaspard) = "asp_cos"
+names(asp_sin_rast_gaspard) = "asp_sin"
+names(species_class_rast_gaspard) = "species_class"
+names(stemsha_L_rast_gaspard) = "stemsha_L"
+names(lead_htop_rast_gaspard) = "lead_htop"
+
+elev_raster_quesnel = raster::raster(elev_rast_quesnel)
+slope_raster_quesnel = raster::raster(slope_rast_quesnel)
+asp_cos_raster_quesnel = raster::raster(asp_cos_rast_quesnel)
+asp_sin_raster_quesnel = raster::raster(asp_sin_rast_quesnel)
+species_class_raster_quesnel = raster::raster(species_class_rast_quesnel)
+stemsha_L_raster_quesnel = raster::raster(stemsha_L_rast_quesnel)
+lead_htop_raster_quesnel = raster::raster(lead_htop_rast_quesnel)
+
+elev_raster_gaspard = raster::raster(elev_rast_gaspard)
+slope_raster_gaspard = raster::raster(slope_rast_gaspard)
+asp_cos_raster_gaspard = raster::raster(asp_cos_rast_gaspard)
+asp_sin_raster_gaspard = raster::raster(asp_sin_rast_gaspard)
+species_class_raster_gaspard = raster::raster(species_class_rast_gaspard)
+stemsha_L_raster_gaspard = raster::raster(stemsha_L_rast_gaspard)
+lead_htop_raster_gaspard = raster::raster(lead_htop_rast_gaspard)
+
+elev_raster = raster::raster(elev_rast)
+slope_raster = raster::raster(slope_rast)
+asp_cos_raster = raster::raster(asp_cos_rast)
+asp_sin_raster = raster::raster(asp_sin_rast)
+species_class_raster = raster::raster(species_class_rast)
+stemsha_L_raster = raster::raster(stemsha_L_rast)
+lead_htop_raster = raster::raster(lead_htop_rast)
+
+covs_m1_quesnel = raster::stack(
+  elev_raster_quesnel, 
+  slope_raster_quesnel,
+  #aspect_raster_quesnel,
+  asp_cos_raster_quesnel,
+  asp_sin_raster_quesnel,
+  species_class_raster_quesnel,
+  lead_htop_raster_quesnel,
+  stemsha_L_raster_quesnel)
+
+covs_m1_gaspard = raster::stack(
+  elev_raster_gaspard, 
+  slope_raster_gaspard,
+  #aspect_raster_gaspard,
+  asp_cos_raster_gaspard,
+  asp_sin_raster_gaspard,
+  species_class_raster_gaspard,
+  lead_htop_raster_gaspard,
+  stemsha_L_raster_gaspard)
+
+covs_m2_quesnel = raster::stack(
+  elev_raster_quesnel, 
+  slope_raster_quesnel,
+  #aspect_raster_quesnel,
+  asp_cos_raster_quesnel,
+  asp_sin_raster_quesnel,
+  species_class_raster_quesnel,
+  lead_htop_raster_quesnel)
+
+covs_m2_gaspard = raster::stack(
+  elev_raster_gaspard, 
+  slope_raster_gaspard,
+  #aspect_raster_gaspard,
+  asp_cos_raster_gaspard,
+  asp_sin_raster_gaspard,
+  species_class_raster_gaspard,
+  lead_htop_raster_gaspard)
+
+covs_m2 = raster::stack(
+  elev_raster, 
+  slope_raster,
+  #aspect_raster, 
+  asp_cos_raster,
+  asp_sin_raster,
+  lead_htop_raster,
+  species_class_raster)
+
+covs_m1 = raster::stack(
+  elev_raster, 
+  slope_raster,
+  #aspect_raster, 
+  asp_cos_raster,
+  asp_sin_raster,
+  lead_htop_raster,
+  species_class_raster,
+  stemsha_L_raster)
+
+#rasterVis::levelplot(covs_m1_gaspard)
+#rasterVis::levelplot(covs_m1_quesnel)
+rasterVis::levelplot(covs_m1)
+```
+
+```{r, eval=FALSE, echo=FALSE}
 terra::plot(lead_htop_rast_20cell_gaspard, main = "lead_htop (Gaspard)")
 terra::plot(stemsha_L_rast_20cell_gaspard, main = "stemsha_L (Gaspard)")
 terra::plot(elev_rast_gaspard, main = "elevation (Gaspard)")
@@ -463,7 +658,6 @@ terra::plot(aspect_rast_quesnel, main = "aspect (Quesnel)")
 tera::plot(species_class_rast_quesnel, main = "species_class (Quesnel)")
 ```
 
-
 ```{r, eval=FALSE}
 faib_psp <- read.csv("/media/seamus/128GB_WORKD/EFI-TCC/0_Caret_Predict_to_writeRasterOutput/Data/FAIB_PSP_20211028.csv")
 faib_psp = subset(faib_psp, util == '12.5')
@@ -472,19 +666,19 @@ faib_psp =  subset(faib_psp,
     spc_live1=='PL' | spc_live1=='PLI' | spc_live1=='FD'| spc_live1=='FDI' | 
     spc_live1=='SB' | spc_live1=='SE' | spc_live1=='SW' | spc_live1=='SX' | 
     spc_live1=='CW' | spc_live1=='HW' | spc_live1=='BL' | spc_live1=='LW')
-faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, PL = 1, PLI = 1, SB = 2, SE = 2, SX = 2, FD = 3, FDI = 3, CW = 3, HW = 4, BL = 5, LW = 6)
+faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, 
+  PL = 1, PLI = 1, SB = 2, SE = 2, SX = 2, 
+  FD = 3, FDI = 3, CW = 3, HW = 4, BL = 5, LW = 6)
+faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
+faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
 faib_psp = subset(faib_psp, stemsha_L < 834)
-print(as_tibble(faib_psp))
+faib_psp = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
 
-faib_psp = na.omit(faib_psp)
-psych::describe(faib_psp)
-
-#################3
-stemsha_L_raster = na.omit(stemsha_L_raster)
 stemsha_L_raster_df = as.data.frame(rasterToPoints(stemsha_L_raster))
-dist.fun = stats::approxfun(density(stemsha_L_raster_df$layer))
-summary(faib_psp)
+dist.fun = approxfun(density(stemsha_L_raster_df$stemsha_L))
 faib_psp = faib_psp %>% slice_sample(n=1186, weight_by = dist.fun(faib_psp$stemsha_L), replace = T)
+psych::describe(faib_psp$stemsha_L)
+hist(faib_psp$stemsha_L)
 
 faib_psp$elev = as.numeric(faib_psp$elev)
 faib_psp$slope = as.numeric(faib_psp$slope)
@@ -733,6 +927,3 @@ hist(tunedModel_rf_m1_to_raster, main="Model2 WITH-STEMS (Random Forest)", cex.m
 plot(tunedModel_rf_m2_to_raster, main="Model1 NO-STEMS (Random Forest)", cex.main=0.8)
 hist(tunedModel_rf_m2_to_raster, main="Model1 NO-STEMS (Random Forest)", cex.main=0.8, maxpixels=22000000) 
 ```
-
-
-
