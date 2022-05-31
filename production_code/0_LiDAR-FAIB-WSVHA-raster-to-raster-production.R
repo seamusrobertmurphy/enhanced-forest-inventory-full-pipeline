@@ -1,18 +1,5 @@
----
-  title: "Production Code Draft: '0_LiDAR-FAIB-WSVHA-raster-to-raster-production.R'"
-author: "Cabin-GIS"
-date: "21/05/2022"
-output: 
-  html_document:
-  toc: TRUE
-toc_depth: 5
-number_sections: FALSE
-df_print: tibble
-latex_engine: xelatex
-zotero: TRUE
----
-  
-```{r setup, echo=FALSE, message=FALSE,warning=FALSE, error=FALSE}
+
+
 library(sf)
 library(sp)
 library(terra)
@@ -27,27 +14,12 @@ library(e1071)
 library(rgdal)
 library(rgeos)
 library(MASS)
-library(Rcpp)
-library(rmarkdown)
-library(knitr)
-library(gtsummary)
 #devtools::install_github(("gearslaboratory/gdalUtils"))
 library(gdalUtils)
-library(gdalUtilities)
-#webshot::install_phantomjs(force = TRUE)
-#knit_hooks$set(webgl = hook_webgl)
-#knit_hooks$set(rgl.static = hook_rgl)
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE, error=FALSE, message = FALSE)
 set.seed(123)
 
 
-## Action
-
-The following markdown report provides a complete run-through and guide of a raster-to-raster workflow to generating Whole Stem Volume (m^3/ha: WSVHA) raster estimates from initial phases of importing liDAR tiles, to deriving stem-detection map and a 95% canopy height model, to generating and masking DEM-based and species covariates, to fitting and training models with faib.csv data, to finally making spatial predictions using raster stack of covariates. 
-
 ## Import raster tiles; All sites
-
-```{r, eval=FALSE}
 zip_file_vh_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/VegHt.zip")
 zip_file_be_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/BareEarth.zip")
 zip_dir_vh_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region")
@@ -99,29 +71,24 @@ lead_htop_raster_gaspard = do.call(merge, c(lead_htop_raster_list_gaspard, toler
 elev_raster_quesnel = do.call(merge, c(elev_raster_list_quesnel, tolerance = 1))
 elev_raster_gaspard = do.call(merge, c(elev_raster_list_gaspard, tolerance = 1))
 
-writeRaster(lead_htop_raster_quesnel, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/lead_htop_raster.tif", overwrite=TRUE)
-writeRaster(lead_htop_raster_gaspard, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/lead_htop_raster.tif", overwrite=TRUE)
-writeRaster(elev_raster_quesnel, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/elev_raster.tif", overwrite=TRUE)
-writeRaster(elev_raster_gaspard, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/elev_raster.tif", overwrite=TRUE)
-```
+writeRaster(lead_htop_raster_quesnel, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/lead_htop_raster_1m_quesnel.tif", overwrite=TRUE)
+writeRaster(lead_htop_raster_gaspard, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/lead_htop_raster_1m_gaspard.tif", overwrite=TRUE)
+writeRaster(elev_raster_quesnel, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/elev_raster_1m_quesnel.tif", overwrite=TRUE)
+writeRaster(elev_raster_gaspard, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/elev_raster_1m_gaspard.tif", overwrite=TRUE)
 
-```{r, fig.show='hold', out.width="50%", echo=FALSE}
-lead_htop_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/lead_htop_raster.tif")
-lead_htop_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/lead_htop_raster.tif")
-elev_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/elev_raster.tif")
-elev_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/elev_raster.tif")
+lead_htop_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/lead_htop_raster_1m_quesnel.tif")
+lead_htop_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/lead_htop_raster_1m_gaspard.tif")
+elev_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/elev_raster_1m_quesnel.tif")
+elev_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/elev_raster_1m_gaspard.tif")
 lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
 lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
 elev_rast_quesnel = terra::rast(elev_raster_quesnel)
 elev_rast_gaspard = terra::rast(elev_raster_gaspard)
 terra::plot(elev_rast_gaspard)
 terra::plot(elev_rast_quesnel)
-```
+
 ## Derive CHM-based covariates using stem-detection and custom variable window function
-
 ### Variable window function
-
-```{r, fig.show='hold', out.width="50%", rgl.static=TRUE, cache=TRUE}
 kernel <- matrix(1,3,3)
 wf_quan<-function(x){ 
   a=0.179-0.1
@@ -138,9 +105,7 @@ window_quan <- wf_quan(heights)
 window_plowright <- wf_plowright(heights)
 plot(heights, window_quan, type = "l",  ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='Quan, 2022')
 plot(heights, window_plowright, type = "l", ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='Plowright, 2018')
-```
 
-```{r, eval=FALSE}
 lead_htop_raster_1m_smoothed_quesnel = focal(lead_htop_rast_quesnel, w = kernel, fun = median, na.rm = TRUE) %>% raster()
 lead_htop_raster_1m_smoothed_gaspard = focal(lead_htop_rast_gaspard, w = kernel, fun = median, na.rm = TRUE) %>% raster()
 ttops_2m_quan_quesnel <- ForestTools::vwf(lead_htop_raster_1m_smoothed_quesnel, wf_quan, 2)
@@ -151,9 +116,8 @@ writeOGR(ttops_2m_quan_quesnel, "/media/seamus/128GB_WORKD/data/vector/stem_maps
 writeOGR(ttops_2m_quan_gaspard, "/media/seamus/128GB_WORKD/data/vector/stem_maps", "treetops_quan_gaspard", driver = "ESRI Shapefile")
 writeOGR(ttops_2m_plowright_quesnel, "/media/seamus/128GB_WORKD/data/vector/stem_maps", "treetops_plowright_quesnel", driver = "ESRI Shapefile")
 writeOGR(ttops_2m_plowright_gaspard, "/media/seamus/128GB_WORKD/data/vector/stem_maps", "treetops_plowright_gaspard", driver = "ESRI Shapefile")
-```
 
-```{r}
+
 quant95 <- function(x, ...) 
   quantile(x, c(0.95), na.rm = TRUE)
 custFuns <- list(quant95, max)
@@ -173,14 +137,14 @@ stemsha_L_ttops_20cell_quesnel = ttops_2m_Quan_raster_2m1.5m_95th_20cell_quesnel
 stemsha_L_ttops_20cell_gaspard = ttops_2m_Quan_raster_2m1.5m_95th_20cell_gaspard[["TreeCount"]]
 stemsha_L_ttops_100cell_quesnel = ttops_2m_Quan_raster_2m1.5m_95th_100cell_quesnel[["TreeCount"]]
 stemsha_L_ttops_100cell_gaspard = ttops_2m_Quan_raster_2m1.5m_95th_100cell_gaspard[["TreeCount"]]
-raster::writeRaster(lead_htop_ttops_20cell_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_20cell_quesnel.tif", overwrite=TRUE)
-raster::writeRaster(lead_htop_ttops_20cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_20cell_gaspard.tif", overwrite=TRUE)
-raster::writeRaster(lead_htop_ttops_100cell_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_100cell_quesnel.tif", overwrite=TRUE)
-raster::writeRaster(lead_htop_ttops_100cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_100cell_gaspard.tif", overwrite=TRUE)
-raster::writeRaster(stemsha_L_ttops_20cell_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_20cell_quesnel.tif", overwrite=TRUE)
-raster::writeRaster(stemsha_L_ttops_20cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_20cell_gaspard.tif", overwrite=TRUE)
-raster::writeRaster(stemsha_L_ttops_100cell_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_100cell_quesnel.tif", overwrite=TRUE)
-raster::writeRaster(stemsha_L_ttops_100cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_100cell_gaspard.tif", overwrite=TRUE)
+raster::writeRaster(lead_htop_ttops_20cell_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_95th_raster_20cell_quesnel.tif", overwrite=TRUE)
+raster::writeRaster(lead_htop_ttops_20cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_95th_raster_20cell_gaspard.tif", overwrite=TRUE)
+raster::writeRaster(lead_htop_ttops_100cell_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_95th_raster_100cell_quesnel.tif", overwrite=TRUE)
+raster::writeRaster(lead_htop_ttops_100cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_95th_raster_100cell_gaspard.tif", overwrite=TRUE)
+raster::writeRaster(stemsha_L_ttops_20cell_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_raster_20cell_quesnel.tif", overwrite=TRUE)
+raster::writeRaster(stemsha_L_ttops_20cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_raster_20cell_gaspard.tif", overwrite=TRUE)
+raster::writeRaster(stemsha_L_ttops_100cell_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_raster_100cell_quesnel.tif", overwrite=TRUE)
+raster::writeRaster(stemsha_L_ttops_100cell_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_raster_100cell_gaspard.tif", overwrite=TRUE)
 ```
 
 ```{r}
@@ -188,12 +152,26 @@ lead_htop_rast_20cell_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/rast
 lead_htop_rast_20cell_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_20cell_gaspard.tif")
 stemsha_L_rast_20cell_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_20cell_quesnel.tif")
 stemsha_L_rast_20cell_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_20cell_gaspard.tif")
+
+lead_htop_rast_100cell_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_100cell_quesnel.tif")
+lead_htop_rast_100cell_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/lead_htop_95th/lead_htop_ttops_100cell_gaspard.tif")
+stemsha_L_rast_100cell_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_100cell_quesnel.tif")
+stemsha_L_rast_100cell_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/stemsha_L_95th/stemsha_L_ttops_100cell_gaspard.tif")
+
 crs(lead_htop_rast_20cell_quesnel) = "epsg:3005"
 crs(lead_htop_rast_20cell_gaspard) = "epsg:3005"
+crs(lead_htop_rast_100cell_quesnel) = "epsg:3005"
+crs(lead_htop_rast_100cell_gaspard) = "epsg:3005"
+
 lead_htop_sv_20cell_quesnel = as.polygons(lead_htop_rast_20cell_quesnel)
 lead_htop_sv_20cell_gaspard = as.polygons(lead_htop_rast_20cell_gaspard)
 lead_htop_sf_20cell_quesnel = sf::st_as_sf(lead_htop_sv_20cell_quesnel)
 lead_htop_sf_20cell_gaspard = sf::st_as_sf(lead_htop_sv_20cell_gaspard)
+
+lead_htop_sv_100cell_quesnel = as.polygons(lead_htop_rast_100cell_quesnel)
+lead_htop_sv_100cell_gaspard = as.polygons(lead_htop_rast_100cell_gaspard)
+lead_htop_sf_100cell_quesnel = sf::st_as_sf(lead_htop_sv_100cell_quesnel)
+lead_htop_sf_100cell_gaspard = sf::st_as_sf(lead_htop_sv_100cell_gaspard)
 
 vri_sf = read_sf("/media/seamus/128GB_WORKD/data/vector/vri/vri_bc_2020_rank1.shp")
 vri_species = vri_sf[c("SPECIES__1", "SPECIES_CD", "SPECIES_PC")]
@@ -216,8 +194,9 @@ raster::writeRaster(species_class_raster_gaspard, filename = "/media/seamus/128G
 ```{r, eval=FALSE}
 terra::crs(elev_rast_quesnel) = "epsg:3005"
 terra::crs(elev_rast_gaspard) = "epsg:3005"
-elev_rast_quesnel = terra::aggregate(elev_rast_quesnel, fact = 20, fun = mean)
-elev_rast_gaspard = terra::aggregate(elev_rast_gaspard, fact = 20, fun = mean)
+elev_rast_quesnel = terra::aggregate(elev_rast_quesnel, fact = 100, fun = mean)
+elev_rast_gaspard = terra::aggregate(elev_rast_gaspard, fact = 100, fun = mean)
+
 slope_rast_quesnel = terra::terrain(elev_rast_quesnel, v="slope", unit="degrees", neighbors=8)
 slope_rast_gaspard = terra::terrain(elev_rast_gaspard, v="slope", unit="degrees", neighbors=8)
 aspect_rast_quesnel = terra::terrain(elev_rast_quesnel, v="aspect", unit="degrees", neighbors=8)
@@ -231,6 +210,12 @@ lead_htop_rast_20cell_quesnel = terra::resample(lead_htop_rast_20cell_quesnel, e
 lead_htop_rast_20cell_gaspard = terra::resample(lead_htop_rast_20cell_gaspard, elev_rast_gaspard)
 stemsha_L_rast_20cell_quesnel = terra::resample(stemsha_L_rast_20cell_quesnel, elev_rast_quesnel)
 stemsha_L_rast_20cell_gaspard = terra::resample(stemsha_L_rast_20cell_gaspard, elev_rast_gaspard)
+
+lead_htop_rast_100cell_quesnel = terra::resample(lead_htop_rast_100cell_quesnel, elev_rast_quesnel)
+lead_htop_rast_100cell_gaspard = terra::resample(lead_htop_rast_100cell_gaspard, elev_rast_gaspard)
+stemsha_L_rast_100cell_quesnel = terra::resample(stemsha_L_rast_100cell_quesnel, elev_rast_quesnel)
+stemsha_L_rast_100cell_gaspard = terra::resample(stemsha_L_rast_100cell_gaspard, elev_rast_gaspard)
+
 species_class_rast_quesnel = terra::resample(species_class_rast_quesnel, elev_rast_quesnel)
 species_class_rast_gaspard = terra::resample(species_class_rast_gaspard, elev_rast_gaspard)
 elev_rast_quesnel = terra::mask(elev_rast_quesnel, lead_htop_rast_20cell_quesnel)
