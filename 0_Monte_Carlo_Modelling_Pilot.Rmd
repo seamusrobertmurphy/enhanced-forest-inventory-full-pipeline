@@ -28,14 +28,71 @@ library(MASS)
 library(car)
 #devtools::install_github(("gearslaboratory/gdalUtils"))
 library(gdalUtils)
-#library(gdalUtilities)
-#webshot::install_phantomjs(force = TRUE)
-#knit_hooks$set(webgl = hook_webgl)
-#knit_hooks$set(rgl.static = hook_rgl)
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, error=FALSE, message = FALSE)
 set.seed(123)
 ```
 
 ```{r}
-plot(cars)
+faib_psp <- read.csv("/media/seamus/128GB_WORKD/EFI-TCC/0_Caret_Predict_to_writeRasterOutput/Data/FAIB_PSP_20211028.csv")
+faib_psp = subset(faib_psp, util == '12.5')
+faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
+faib_psp =  subset(faib_psp, 
+    spc_live1=='PL' | spc_live1=='PLI' | spc_live1=='FD'| spc_live1=='FDI' | 
+    spc_live1=='SB' | spc_live1=='SE' | spc_live1=='SW' | spc_live1=='SX' | 
+    spc_live1=='CW' | spc_live1=='HW' | spc_live1=='BL' | spc_live1=='LW')
+faib_psp$species_class = dplyr::recode(faib_psp$spc_live1, 
+  PL = 1, PLI = 1, SB = 2, SE = 2, SX = 2, 
+  FD = 3, FDI = 3, CW = 3, HW = 4, BL = 5, LW = 6)
+faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
+faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
+faib_psp = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "stemsha_L", "wsvha_L")]
+faib_psp$elev[faib_psp$elev <= 0] = NA
+faib_psp$slope[faib_psp$slope <= 0] = NA
+faib_psp$lead_htop[faib_psp$lead_htop < 2] = NA
+faib_psp$stemsha_L[faib_psp$stemsha_L <= 0] = NA
+faib_psp$wsvha_L[faib_psp$wsvha_L <= 1] = NA
+faib_psp = subset(faib_psp, stemsha_L < 864)
+faib_psp = na.omit(faib_psp)
+psych::describe(faib_psp)
+```
+
+```{r}
+plot(faib_psp$stemsha_L, faib_psp$wsvha_L, pch = 19, frame = FALSE)
+#abline(lm(faib_psp$wsvha_L ~ faib_psp$stemsha_L), add=T)
+```
+
+```{r}
+library(bootstrap)
+## Importance sample algorithm
+rast_stems = stemsha_L_raster_df$stemsha_L
+faib_stems = faib_psp$stemsha_L
+rast_stems_n = length(stemsha_L_raster_df$stemsha_L)
+faib_stems_n = length(faib_psp$stemsha_L)
+var(rast_stems)
+var(faib_stems)
+
+hist(faib_stems)
+hist(rast_stems)
+
+for(i in 1:rast_stems_n) {
+  x = runif(n = 605, min = 0, max = 605)
+  y = runif(n = 605, min = 0, max = 605)
+  if(x^2 + y^2 <=1) {
+    faib_stems_n = faib_stems_n + 1
+  }
+}
+
+print(4 * faib_stems_n / rast_stems_n)  
+```
+
+```{r}
+# declaring target function
+f = function(rast_stems){return(exp(rast_stems))}
+# declaring absolute error function
+error = function(rast_stems, faib_stems){return(abs(rast_stems - faib_stems))}
+
+set.seed(123)
+# number of simulations
+n = 999
+
 ```
