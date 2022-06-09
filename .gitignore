@@ -10,6 +10,7 @@ Scripts/
 data_gaspard/
 data_quesnel/
 data_quesnel_gaspard/
+images/
 
 *.csv
 *.tif

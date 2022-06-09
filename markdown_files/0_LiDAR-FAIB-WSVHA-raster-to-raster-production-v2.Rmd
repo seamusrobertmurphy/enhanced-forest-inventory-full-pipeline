@@ -564,7 +564,7 @@ faib_psp = na.omit(faib_psp)
 psych::describe(faib_psp)
 stemsha_L_raster_df = as.data.frame(rasterToPoints(stemsha_L_raster_gaspard))
 dist.fun = approxfun(density(stemsha_L_raster_df$stemsha_L))
-faib_psp = dplyr::sample_n(faib_psp, 500, weight_by = dist.fun(faib_psp$stemsha_L), replace = TRUE)
+faib_psp = dplyr::sample_n(faib_psp, B * n, weight_by = dist.fun(faib_psp$stemsha_L), replace = TRUE)
 faib_psp = dplyr::sample_n(faib_psp, 600, weight_by = dist.fun, replace = TRUE)
 truehist(faib_psp$stemsha_L, main="Stems/ha (Bootstrapped FAIB)")
 ```
