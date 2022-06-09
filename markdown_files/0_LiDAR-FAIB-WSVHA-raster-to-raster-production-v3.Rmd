@@ -50,7 +50,7 @@ The following markdown report provides a complete run-through and guide of a ras
 
 ## Import LiDAR: Load, list and merge chunks
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, cols.print=7}
 zip_file_vh_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/VegHt.zip")
 zip_file_be_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/BareEarth.zip")
 zip_dir_vh_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region")
@@ -79,17 +79,17 @@ lead_htop_raster_quesnel = do.call(merge, c(lead_htop_raster_list_quesnel, toler
 lead_htop_raster_gaspard = do.call(merge, c(lead_htop_raster_list_gaspard, tolerance = 1))
 elev_raster_quesnel = do.call(merge, c(elev_raster_list_quesnel, tolerance = 1))
 elev_raster_gaspard = do.call(merge, c(elev_raster_list_gaspard, tolerance = 1))
-writeRaster(lead_htop_raster_quesnel, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/lead_htop_raster_1m_quesnel.tif", overwrite=TRUE)
-writeRaster(lead_htop_raster_gaspard, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/lead_htop_raster_1m_gaspard.tif", overwrite=TRUE)
-writeRaster(elev_raster_quesnel, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/elev_raster_1m_quesnel.tif", overwrite=TRUE)
-writeRaster(elev_raster_gaspard, filename = "/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/elev_raster_1m_gaspard.tif", overwrite=TRUE)
+writeRaster(lead_htop_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/quesnel_region/lead_htop_raster_1m_quesnel.tif", overwrite=TRUE)
+writeRaster(lead_htop_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/gaspard_region/lead_htop_raster_1m_gaspard.tif", overwrite=TRUE)
+writeRaster(elev_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/quesnel_region/elev_raster_1m_quesnel.tif", overwrite=TRUE)
+writeRaster(elev_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/gaspard_region/elev_raster_1m_gaspard.tif", overwrite=TRUE)
 ```
 
 ```{r, fig.show='hold', out.width="50%", echo=FALSE}
-lead_htop_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/lead_htop_raster_1m_quesnel.tif")
-lead_htop_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/lead_htop_raster_1m_gaspard.tif")
-elev_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/elev_raster_1m_quesnel.tif")
-elev_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/elev_raster_1m_gaspard.tif")
+lead_htop_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/quesnel_region/lead_htop_raster_1m_quesnel.tif")
+lead_htop_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/gaspard_region/lead_htop_raster_1m_gaspard.tif")
+elev_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/quesnel_region/elev_raster_1m_quesnel.tif")
+elev_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/gaspard_region/elev_raster_1m_gaspard.tif")
 lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
 lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
 elev_rast_quesnel = terra::rast(elev_raster_quesnel)
@@ -98,15 +98,15 @@ terra::crs(lead_htop_rast_gaspard) = "epsg:3005"
 terra::crs(lead_htop_rast_quesnel) = "epsg:3005"
 terra::crs(elev_rast_gaspard) = "epsg:3005"
 terra::crs(elev_rast_quesnel) = "epsg:3005"
-terra::plot(lead_htop_raster_gaspard, main = 'CHM Raw (1m res)')
+terra::plot(lead_htop_rast_gaspard, main = 'CHM Raw (1m res)')
 terra::plot(lead_htop_rast_quesnel, main = 'CHM Raw (1m res)')
 terra::plot(elev_rast_gaspard, main = 'Elevation Raw (1m res)')
 terra::plot(elev_rast_quesnel, main = 'Elevation Raw (1m res)')
 ```
 
-## CHM-derived covariates: Variable window function
 
-```{r, fig.show='hold', out.width="50%", rgl.static=TRUE, cache=TRUE}
+```{r, fig.show='hold', out.width="50%", rgl.static=TRUE, cache=TRUE, eval=FALSE, echo=FALSE}
+## CHM-derived covariates: Variable window function
 kernel <- matrix(1,3,3)
 wf_quan<-function(x){ 
   a=0.179-0.1
@@ -125,9 +125,10 @@ plot(heights, window_quan, type = "l",  ylim = c(0,12), xlab="point elevation (m
 plot(heights, window_plowright, type = "l", ylim = c(0,12), xlab="point elevation (m)", ylab="window diameter (m)", main='Plowright, 2018')
 ```
 
-## CHM-derived covariates: Stem-detection & 95% height
 
-```{r, eval=FALSE}
+
+```{r, eval=FALSE, echo=FALSE}
+## CHM-derived covariates: Stem-detection & 95% height
 lead_htop_raster_1m_smoothed_quesnel = focal(lead_htop_rast_quesnel, w = kernel, fun = median, na.rm = TRUE) %>% raster()
 lead_htop_raster_1m_smoothed_gaspard = focal(lead_htop_rast_gaspard, w = kernel, fun = median, na.rm = TRUE) %>% raster()
 ttops_2m_quan_quesnel <- ForestTools::vwf(lead_htop_raster_1m_smoothed_quesnel, wf_quan, 2)
@@ -323,8 +324,8 @@ ggplot(masks_sf_quesnel) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
 ```
 
 ```{r, fig.show='hold', out.width="50%", echo=FALSE}
-masks_rast_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc//mask/mask_raster_100m_quesnel.tif")
-masks_rast_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/mask/mask_raster_100m_gaspard.tif")
+masks_rast_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_quesnel.tif")
+masks_rast_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_gaspard.tif")
 masks_sv_quesnel = as.polygons(masks_rast_quesnel)
 masks_sv_gaspard = as.polygons(masks_rast_gaspard)
 masks_sf_quesnel = sf::st_as_sf(masks_sv_quesnel)

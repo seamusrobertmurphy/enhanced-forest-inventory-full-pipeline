@@ -14,12 +14,12 @@ library(spatstat.geom)
 library(spatstat.utils)
 library(maptools)
 library(bootstrap)
-library(doParallel)  # for parallel backend to foreach
-library(foreach)     # for parallel processing with for loops
-library(caret)       # for general model fitting
-library(rpart)       # for fitting decision trees
-library(ipred)       # for fitting bagged decision trees
-library(ggplot2)     # for awesome plotting
+library(doParallel)  
+library(foreach)     
+library(caret)       
+library(rpart)       
+library(ipred)       
+library(ggplot2)     
 library(kernlab)
 library(randomForest)
 set.seed(8888)
