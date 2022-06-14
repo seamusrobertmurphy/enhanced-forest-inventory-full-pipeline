@@ -23,13 +23,13 @@ library(doParallel)
 library(foreach)
 set.seed(123)
 
-lead_htop_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/quesnel_region/lead_htop_raster_1m_quesnel.tif")
-lead_htop_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/gaspard_region/lead_htop_raster_1m_gaspard.tif")
-elev_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/quesnel_region/elev_raster_1m_quesnel.tif")
-elev_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/gaspard_region/elev_raster_1m_gaspard.tif")
-lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
-lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
-elev_rast_quesnel = terra::rast(elev_raster_quesnel)
+#lead_htop_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/quesnel_region/lead_htop_raster_1m_quesnel.tif")
+#lead_htop_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/gaspard_region/lead_htop_raster_1m_gaspard.tif")
+#elev_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/quesnel_region/elev_raster_1m_quesnel.tif")
+#elev_raster_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/LiDAR_raw/gaspard_region/elev_raster_1m_gaspard.tif")
+#lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
+#lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
+#elev_rast_quesnel = terra::rast(elev_raster_quesnel)
 elev_rast_gaspard = terra::rast(elev_raster_gaspard)
 terra::crs(lead_htop_rast_gaspard) = "epsg:3005"
 terra::crs(lead_htop_rast_quesnel) = "epsg:3005"
@@ -339,6 +339,7 @@ tunedModel_rf_m1 = predict(tunedModel_rf_m1_full, newdata=faib_vri_true_m1_df, t
 tunedModel_rf_m1_test = predict(tunedModel_rf_m1_train, newdata=test_m1, type = "response")
 save(tunedModel_rf_m1_full, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_randomForest_bootstrapped_demBased_e1071.RData")
 
+tuneResult_rf_m1_full
 R2(tunedModel_rf_m1, faib_vri_true_m1_df$wsvha_L)
 MAE(tunedModel_rf_m1, faib_vri_true_m1_df$wsvha_L)
 RMSE(tunedModel_rf_m1, faib_vri_true_m1_df$wsvha_L)
@@ -348,6 +349,10 @@ RMSE(tunedModel_rf_m1_test, test_m1$wsvha_L)
 wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas <- raster::predict(covs_m1, tunedModel_rf_m1_full)
 wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard <- raster::predict(covs_m1_gaspard, tunedModel_rf_m1_full)
 wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel <- raster::predict(covs_m1_quesnel, tunedModel_rf_m1_full)
+wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas$layer[wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas$layer <= 0] = 0
+wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard$layer[wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard$layer <= 0] = 0
+wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel$layer[wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel$layer <= 0] = 0
+
 writeRaster(wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas, overwrite=TRUE,
   filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas.tif")
 writeRaster(wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard, overwrite=TRUE,
@@ -365,9 +370,7 @@ hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel, main="Quesnel
 
 
 
-
 ## Model: Support Vector Machine Radial Kernel
-
 tuneResult_svm_m1_full <- train(
   wsvha_L~., data=faib_vri_true_m1_df_boot_stemfree,
   trControl = fitControl_YeoJx1,
@@ -382,324 +385,125 @@ tuneResult_svm_m1_train <- train(
   ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)), tuneLength = 10,
   preProc = c('YeoJohnson', 'scale', 'center', 'corr'), verbose=F)
 
-
 tunedModel_svmRadial_m1 = predict(tuneResult_svm_m1_full, newdata=faib_vri_true_m1_df)
 tunedModel_svmRadial_m1_test = predict(tuneResult_svm_m1_train, newdata=test_m1)
+tuneResult_svm_m1_full$finalModel
 R2(tunedModel_svmRadial_m1, faib_vri_true_m1_df$wsvha_L)
 MAE(tunedModel_svmRadial_m1, faib_vri_true_m1_df$wsvha_L)
 RMSE(tunedModel_svmRadial_m1, faib_vri_true_m1_df$wsvha_L)
 MAE(tunedModel_svmRadial_m1_test, test_m1$wsvha_L)
 RMSE(tunedModel_svmRadial_m1_test, test_m1$wsvha_L)
+save(tunedModel_svmRadial_m1, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_svmRadial_bootstrapped_demBased_caret.RData")
 
-
-
-
-
-
-## Model: Support Vector Machine Radial Kernel - E1071
-
-
-tuneResult_svm_m1_train <- best.svm(
-  x=X_train_m1_boot, y=y_train_m1_boot,
-  tunecontrol = tune.control(sampling = "cross", cross = 10),
-  preProcess = c('YeoJohnson', 'scale', 'center', 'corr'))
-
-tunedModel_svm_m1 = predict(tuneResult_svm_m1_full, data=faib_vri_true_m1_df)
-tunedModel_svm_m1_test = predict(tuneResult_svm_m1_train, data=faib_vri_true_m1_df)
-save(tunedModel_svm_m1, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_svmRadial_bootstrapped_demBased_e1071.RData")
-
-R2(tunedModel_svm_m1, faib_vri_true_m1_df_boot_stemfree$wsvha_L)
-MAE(tunedModel_svm_m1, y_m1_boot)
-RMSE(tunedModel_svm_m1, y_m1_boot)
-MAE(tunedModel_svm_m1_test, y_test_m1_boot)
-RMSE(tunedModel_svm_m1_test, y_test_m1_boot)
-
-wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel <- predict(covs_m1_quesnel, tunedModel_svm_m1_full)
-wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard <- predict(covs_m1_gaspard, tunedModel_svm_m1_full)
 par(mfrow = c(2, 2)) # Visualization
-plot(tunedModel_svm_m1_to_raster_gaspard, main="Gaspard: Model1 SVMRadial", cex.main=0.8, maxpixels=22000000)
-hist(tunedModel_svm_m1_to_raster_gaspard, main="Gaspard: Model1 SVMRadial", cex.main=0.8, maxpixels=22000000) 
-plot(tunedModel_svm_m1_to_raster_quesnel, main="Quesnel: Model1 SVMRadial" cex.main=0.8, maxpixels=22000000) 
-hist(tunedModel_svm_m1_to_raster_quesnel, main="Quesnel: Model1 SVMRadial", cex.main=0.8, maxpixels=22000000) 
-
-
-## Model: Support Vector Machine Radial Kernel (epsilon-untuned)
-tuneResult_svm_m1_full <- train(
-  X_m1_boot, y_m1_boot, 
-  trControl = fitControl_YeoJx1,
-  method = 'svmRadial', metric = 'RMSE',
-  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
-  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
-  verbose=F)
-
-tuneResult_svm_m1_train <- train(
-  X_train_m1_boot, y_train_m1_boot,
-  trControl = fitControl_YeoJx1,
-  method = 'svmRadial', metric = 'RMSE',
-  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
-  preProc = c('YeoJohnson', 'scale', 'center', 'corr'), 
-  verbose=F)
-
-#tunedModel_svm_m1 <- tuneResult_svm_m1_full$finalModel
-#tunedModel_svm_m1_train_pred <- tuneResult_svm_m1_train$finalModel
-
-tunedModel_svmRadial_m1 = predict(tuneResult_svm_m1_full, data = faib_vri_true_m1_df_boot_stemfree)
-tunedModel_svmRadial_m1_test = predict(tuneResult_svm_m1_train, data = test_m1_boot)
-save(tunedModel_svm_m1_full, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_svmRadial.RData")
-
-R2(tunedModel_svmRadial_m1, faib_vri_true_m1_df$wsvha_L)
-MAE(tunedModel_svmRadial_m1, faib_vri_true_m1_df$wsvha_L)
-RMSE(tunedModel_svmRadial_m1, faib_vri_true_m1_df$wsvha_L)
-MAE(tunedModel_svmRadial_m1_test, test_m1$wsvha_L)
-RMSE(tunedModel_svmRadial_m1_test, test_m1$wsvha_L)
-
-wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard <- raster::predict(covs_m1_gaspard, tuneResult_svm_m1_full)
-wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel <- raster::predict(covs_m1_quesnel, tuneResult_svm_m1_full)
+wsvha_model1_svmRadial_bootstrapped_demBased_100m_AllAreas <- predict(covs_m1, tuneResult_svm_m1_full)
+wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard <- predict(covs_m1_gaspard, tuneResult_svm_m1_full)
+wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel <- predict(covs_m1_quesnel, tuneResult_svm_m1_full)
+wsvha_model1_svmRadial_bootstrapped_demBased_100m_AllAreas$layer[wsvha_model1_svmRadial_bootstrapped_demBased_100m_AllAreas$layer <= 0] = 0
 wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard$layer[wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard$layer <= 0] = 0
 wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel$layer[wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel$layer <= 0] = 0
-plot(wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard, main="Model1 NO-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel, main="Model1 NO-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000)
-hist(wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard, main="Model1 NO-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel, main="Model1 NO-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000) 
 
+plot(wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard, main="Gaspard: Model1 SVMRadial", cex.main=0.8, maxpixels=22000000)
+hist(wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard, main="Gaspard: Model1 SVMRadial", cex.main=0.8, maxpixels=22000000) 
+plot(wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel, main="Quesnel: Model1 SVMRadial", cex.main=0.8, maxpixels=22000000) 
+hist(wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel, main="Quesnel: Model1 SVMRadial", cex.main=0.8, maxpixels=22000000) 
+writeRaster(wsvha_model1_svmRadial_bootstrapped_demBased_100m_AllAreas, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_svmRadial_bootstrapped_demBased_100m_AllAreas.tif")
+writeRaster(wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_svmRadial_bootstrapped_demBased_100m_gaspard.tif")
+writeRaster(wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_svmRadial_bootstrapped_demBased_100m_quesnel.tif")
 
-
-
-save(tunedModel_svm_m1_full, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_svmRadial.RData")
-save(tunedModel_svm_m2_full, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model2_svmRadial.RData")
-tunedModel_svm_m1_to_raster$layer[tunedModel_svm_m1_to_raster$layer <= 0] = 0
-tunedModel_svm_m2_to_raster$layer[tunedModel_svm_m2_to_raster$layer <= 0] = 0
-tunedModel_svm_m1_to_raster_gaspard$layer[tunedModel_svm_m1_to_raster_gaspard$layer <= 0] = 0
-tunedModel_svm_m2_to_raster_gaspard$layer[tunedModel_svm_m2_to_raster_gaspard$layer <= 0] = 0
-tunedModel_svm_m1_to_raster_quesnel$layer[tunedModel_svm_m1_to_raster_quesnel$layer <= 0] = 0
-tunedModel_svm_m2_to_raster_quesnel$layer[tunedModel_svm_m2_to_raster_quesnel$layer <= 0] = 0
-writeRaster(tunedModel_svm_m1_to_raster, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_100m_allAreas.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m2_to_raster, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_100m_allAreas.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m1_to_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_100m_gaspard.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m2_to_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_100m_gaspard.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m1_to_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_100m_quesnel.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m2_to_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_100m_quesnel.tif", overwrite=TRUE)
-
-
-
-```{r, fig.show='hold', out.width="25%", echo=FALSE}
-wsvha_model1_svmRadial_100m_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_100m_gaspard.tif")
-wsvha_model2_svmRadial_100m_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_100m_gaspard.tif")
-wsvha_model1_svmRadial_100m_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_100m_quesnel.tif")
-wsvha_model2_svmRadial_100m_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_100m_quesnel.tif")
-plot(wsvha_model1_svmRadial_100m_gaspard, main="Model1 NO-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model1_svmRadial_100m_quesnel, main="Model1 NO-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model2_svmRadial_100m_gaspard, main="Model2 WITH-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model2_svmRadial_100m_quesnel, main="Model2 WITH-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000)
-hist(wsvha_model1_svmRadial_100m_gaspard, main="Model1 NO-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model1_svmRadial_100m_quesnel, main="Model1 NO-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model2_svmRadial_100m_gaspard, main="Model2 WITH-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model2_svmRadial_100m_quesnel, main="Model2 WITH-STEMS (SVM Radial)", cex.main=0.8, maxpixels=22000000) 
-```
 
 ## Model: Support Vector Machine Radial Kernel (epsilon-tuned)
-
-```{r, eval=FALSE}
 tuneResult_svm_m1_full_eps <- train(
-  X_m1, y_m1, 
-  trControl = fitControl_YeoJx10,
+  wsvha_L~., data=faib_vri_true_m1_df_boot_stemfree,
+  trControl = fitControl_YeoJx1,
   method = 'svmRadial', metric = 'RMSE',
   ranges = list(epsilon = seq(0.02,0.1,0.2), cost = c(1,5,7,15,20), gamma = 2^(-1:1)), tuneLength = 10,
-  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
-  verbose=F)
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'), verbose=F)
 
-tuneResult_svm_m2_full_eps = train(
-  X_m2, y_m2,
-  trControl = fitControl_YeoJx10,
+tuneResult_svm_m1_train_eps <- train(
+  wsvha_L~., data=train_m1_boot,
+  trControl = fitControl_YeoJx1,
   method = 'svmRadial', metric = 'RMSE',
-  ranges = list(epsilon = seq(0.02,0.1,0.2), cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
-  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
-  verbose=F)
+  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)), tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'), verbose=F)
 
-tunedModel_svm_m2_full_eps <- tuneResult_svm_m2_full_eps$finalModel
-tunedModel_svm_m1_full_eps <- tuneResult_svm_m1_full_eps$finalModel
-save(tunedModel_svm_m1_full_eps, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_svmRadial_e.RData")
-save(tunedModel_svm_m2_full_eps, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model2_svmRadial_e.RData")
-tunedModel_svm_m1_to_raster_eps <- raster::predict(covs_m1, tuneResult_svm_m1_full_eps)
-tunedModel_svm_m2_to_raster_eps <- raster::predict(covs_m2, tuneResult_svm_m2_full_eps)
-tunedModel_svm_m1_to_raster_eps_gaspard <- raster::predict(covs_m1_gaspard, tuneResult_svm_m1_full_eps)
-tunedModel_svm_m2_to_raster_eps_gaspard <- raster::predict(covs_m2_gaspard, tuneResult_svm_m2_full_eps)
-tunedModel_svm_m1_to_raster_eps_quesnel <- raster::predict(covs_m1_quesnel, tuneResult_svm_m1_full_eps)
-tunedModel_svm_m2_to_raster_eps_quesnel <- raster::predict(covs_m2_quesnel, tuneResult_svm_m2_full_eps)
-tunedModel_svm_m1_to_raster_eps$layer[tunedModel_svm_m1_to_raster_eps$layer <= 0] = 0
-tunedModel_svm_m2_to_raster_eps$layer[tunedModel_svm_m2_to_raster_eps$layer <= 0] = 0
-tunedModel_svm_m1_to_raster_eps_gaspard$layer[tunedModel_svm_m1_to_raster_eps_gaspard$layer <= 0] = 0
-tunedModel_svm_m2_to_raster_eps_gaspard$layer[tunedModel_svm_m2_to_raster_eps_gaspard$layer <= 0] = 0
-tunedModel_svm_m1_to_raster_eps_quesnel$layer[tunedModel_svm_m1_to_raster_eps_quesnel$layer <= 0] = 0
-tunedModel_svm_m2_to_raster_eps_quesnel$layer[tunedModel_svm_m2_to_raster_eps_quesnel$layer <= 0] = 0
-writeRaster(tunedModel_svm_m1_to_raster_eps, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_e_100m_allAreas.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m2_to_raster_eps, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_e_100m_allAreas.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m1_to_raster_eps_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_e_100m_gaspard.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m2_to_raster_eps_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_e_100m_gaspard.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m1_to_raster_eps_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_e_100m_quesnel.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m2_to_raster_eps_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_e_100m_quesnel.tif", overwrite=TRUE)
-```
+tunedModel_svmRadial_m1_eps = predict(tuneResult_svm_m1_full_eps, newdata=faib_vri_true_m1_df)
+tunedModel_svmRadial_m1_test_eps = predict(tuneResult_svm_m1_train_eps, newdata=test_m1)
+tuneResult_svm_m1_full_eps$finalModel
+R2(tunedModel_svmRadial_m1_eps, faib_vri_true_m1_df$wsvha_L)
+MAE(tunedModel_svmRadial_m1_eps, faib_vri_true_m1_df$wsvha_L)
+RMSE(tunedModel_svmRadial_m1_eps, faib_vri_true_m1_df$wsvha_L)
+MAE(tunedModel_svmRadial_m1_test_eps, test_m1$wsvha_L)
+RMSE(tunedModel_svmRadial_m1_test_eps, test_m1$wsvha_L)
+save(tunedModel_svmRadial_m1_eps, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_svmRadial_eps_bootstrapped_demBased_caret.RData")
+
+par(mfrow = c(2, 2)) # Visualization
+wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_AllAreas <- predict(covs_m1, tuneResult_svm_m1_full_eps)
+wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_gaspard <- predict(covs_m1_gaspard, tuneResult_svm_m1_full_eps)
+wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_quesnel <- predict(covs_m1_quesnel, tuneResult_svm_m1_full_eps)
+wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_AllAreas$layer[wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_AllAreas$layer <= 0] = 0
+wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_gaspard$layer[wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_gaspard$layer <= 0] = 0
+wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_quesnel$layer[wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_quesnel$layer <= 0] = 0
+
+plot(wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_gaspard, main="Gaspard: Model1 SVMRadial-e", cex.main=0.8, maxpixels=22000000)
+hist(wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_gaspard, main="Gaspard: Model1 SVMRadial-e", cex.main=0.8, maxpixels=22000000) 
+plot(wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_quesnel, main="Quesnel: Model1 SVMRadial-e", cex.main=0.8, maxpixels=22000000) 
+hist(wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_quesnel, main="Quesnel: Model1 SVMRadial-e", cex.main=0.8, maxpixels=22000000) 
+writeRaster(wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_AllAreas, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_AllAreas.tif")
+writeRaster(wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_gaspard, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_gaspard.tif")
+writeRaster(wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_quesnel, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_svmRadial_eps_bootstrapped_demBased_100m_quesnel.tif")
 
 
-```{r, fig.show='hold', out.width="25%", echo=FALSE}
-wsvha_model1_svmRadial_e_100m_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_e_100m_gaspard.tif")
-wsvha_model2_svmRadial_e_100m_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_e_100m_gaspard.tif")
-wsvha_model1_svmRadial_e_100m_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmRadial_e_100m_quesnel.tif")
-wsvha_model2_svmRadial_e_100m_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmRadial_e_100m_quesnel.tif")
-plot(wsvha_model1_svmRadial_e_100m_gaspard, main="Model1 NO-STEMS (SVM Radial epsilon-tuned)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model1_svmRadial_e_100m_quesnel, main="Model1 NO-STEMS (SVM Radial epsilon-tuned)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model2_svmRadial_e_100m_gaspard, main="Model2 WITH-STEMS (SVM Radial epsilon-tuned)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model2_svmRadial_e_100m_quesnel, main="Model2 WITH-STEMS (SVM Radial epsilon-tuned)", cex.main=0.8, maxpixels=22000000)
-hist(wsvha_model1_svmRadial_e_100m_gaspard, main="Model1 NO-STEMS (SVM Radial epsilon-tuned)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model1_svmRadial_e_100m_quesnel, main="Model1 NO-STEMS (SVM Radial epsilon-tuned)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model2_svmRadial_e_100m_gaspard, main="Model2 WITH-STEMS (SVM Radial epsilon-tuned)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model2_svmRadial_e_100m_quesnel, main="Model2 WITH-STEMS (SVM Radial epsilon-tuned)", cex.main=0.8, maxpixels=22000000) 
-```
 
 ## Model: Support Vector Machine Linear Kernel
-
-```{r, eval=FALSE}
 tuneResult_svm_m1_full_linear <- train(
-  X_m1, y_m1,
+  wsvha_L~., data=faib_vri_true_m1_df_boot_stemfree,
+  trControl = fitControl_YeoJx1,
+  method = 'svmLinear', metric = 'RMSE',
+  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'), verbose=F)
+
+
+tuneResult_svm_m1_train_linear <- train(
+  wsvha_L~., data=train_m1,
   trControl = fitControl_YeoJx10,
   method = 'svmLinear', metric = 'RMSE',
   ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
-  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
-  verbose=F)
+  preProc = c('YeoJohnson', 'scale', 'center', 'corr'), verbose=F)
 
-tuneResult_svm_m2_full_linear <- train(
-  X_m2, y_m2,
-  trControl = fitControl_YeoJx10,
-  method = 'svmLinear',metric = 'RMSE', 
-  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
-  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
-  verbose=F)
+print(tuneResult_svm_m1_full_linear)
+tuneResult_svm_m1_full_linear$finalModel
+tunedModel_svmRadial_m1_linear = predict(tuneResult_svm_m1_full_linear, newdata=faib_vri_true_m1_df)
+tunedModel_svmRadial_m1_test_linear = predict(tuneResult_svm_m1_train_linear, newdata=test_m1)
+R2(tunedModel_svmRadial_m1_linear, faib_vri_true_m1_df$wsvha_L)
+MAE(tunedModel_svmRadial_m1_linear, faib_vri_true_m1_df$wsvha_L)
+RMSE(tunedModel_svmRadial_m1_linear, faib_vri_true_m1_df$wsvha_L)
+MAE(tunedModel_svmRadial_m1_test_linear, test_m1$wsvha_L)
+RMSE(tunedModel_svmRadial_m1_test_linear, test_m1$wsvha_L)
+save(tunedModel_svmRadial_m1_linear, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_svmRadial_linear_bootstrapped_demBased_caret.RData")
 
-tunedModel_svm_m2_full_linear <- tuneResult_svm_m2_full_linear$finalModel
-tunedModel_svm_m1_full_linear <- tuneResult_svm_m1_full_linear$finalModel
-save(tunedModel_svm_m1_full_linear, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_svmLinear.RData")
-save(tunedModel_svm_m2_full_linear, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model2_svmLinear.RData")
+par(mfrow = c(2, 2)) # Visualization
+wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_AllAreas <- predict(covs_m1, tuneResult_svm_m1_full_linear)
+wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_gaspard <- predict(covs_m1_gaspard, tuneResult_svm_m1_full_linear)
+wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_quesnel <- predict(covs_m1_quesnel, tuneResult_svm_m1_full_linear)
+wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_AllAreas$layer[wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_AllAreas$layer <= 0] = 0
+wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_gaspard$layer[wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_gaspard$layer <= 0] = 0
+wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_quesnel$layer[wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_quesnel$layer <= 0] = 0
 
-tuneResult_svmLinear_m2_10k_train <- train(
-  X_train_m2, y_train_m2,
-  trControl = fitControl_YeoJx10,
-  method = 'svmLinear', metric = 'RMSE',
-  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
-  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
-  verbose=F)
+plot(wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_gaspard, main="Gaspard: Model1 SVMLinear", cex.main=0.8, maxpixels=22000000)
+hist(wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_gaspard, main="Gaspard: Model1 SVMLinear", cex.main=0.8, maxpixels=22000000) 
+plot(wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_quesnel, main="Quesnel: Model1 SVMLinear", cex.main=0.8, maxpixels=22000000) 
+hist(wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_quesnel, main="Quesnel: Model1 SVMLinear", cex.main=0.8, maxpixels=22000000) 
+writeRaster(wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_AllAreas, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_AllAreas.tif")
+writeRaster(wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_gaspard, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_gaspard.tif")
+writeRaster(wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_quesnel, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_svmRadial_linear_bootstrapped_demBased_100m_quesnel.tif")
 
-tuneResult_svmLinear_m1_10k_train <- train(
-  X_train_m1, y_train_m1,
-  trControl = fitControl_YeoJx10,
-  method = 'svmLinear',metric = 'RMSE',
-  ranges = list(cost = c(1,5,7,15,20), gamma = 2^(-1:1)),tuneLength = 10,
-  preProc = c('YeoJohnson', 'scale', 'center', 'corr'),
-  verbose=F)
-
-tunedModel_svmLinear_m2_test = predict(tuneResult_svmLinear_m2_10k_train, data = test_m2)
-tunedModel_svmLinear_m1_test = predict(tuneResult_svmLinear_m1_10k_train, data = test_m1)
-tunedModel_svmLinear_m2_test_MAE = MAE(tunedModel_svmLinear_m2_test, test_m2$wsvha_L)
-tunedModel_svmLinear_m1_test_MAE = MAE(tunedModel_svmLinear_m1_test, test_m1$wsvha_L)
-tunedModel_svmLinear_m2_test_RMSE = RMSE(tunedModel_svmLinear_m2_test, test_m2$wsvha_L)
-tunedModel_svmLinear_m1_test_RMSE = RMSE(tunedModel_svmLinear_m1_test, test_m1$wsvha_L)
-
-tunedModel_svmLinear_m2 = predict(tuneResult_svm_m2_full_linear, data = faib_vri_true_m2_df)
-tunedModel_svmLinear_m1 = predict(tuneResult_svm_m1_full_linear, data = faib_vri_true_m1_df)
-tunedModel_svmLinear_m2_MAE = MAE(tunedModel_svmLinear_m2, faib_vri_true_m2_df$wsvha_L)
-tunedModel_svmLinear_m1_MAE = MAE(tunedModel_svmLinear_m1, faib_vri_true_m1_df$wsvha_L)
-tunedModel_svmLinear_m2_RMSE = RMSE(tunedModel_svmLinear_m2, faib_vri_true_m2_df$wsvha_L)
-tunedModel_svmLinear_m1_RMSE = RMSE(tunedModel_svmLinear_m1, faib_vri_true_m1_df$wsvha_L)
-
-tunedModel_svm_m2_full_linear
-R2(tunedModel_svmLinear_m2, y_m2)
-tunedModel_svmLinear_m2_MAE
-tunedModel_svmLinear_m2_RMSE 
-tunedModel_svmLinear_m2_test_MAE
-tunedModel_svmLinear_m2_test_RMSE
-tunedModel_svmLinear_m2_RMSE/tunedModel_svmLinear_m2_test_RMSE
-
-tunedModel_svm_m1_full_linear
-R2(tunedModel_svmLinear_m1, y_m1)
-tunedModel_svmLinear_m1_MAE
-tunedModel_svmLinear_m1_RMSE 
-tunedModel_svmLinear_m1_test_MAE
-tunedModel_svmLinear_m1_test_RMSE
-tunedModel_svmLinear_m1_RMSE/tunedModel_svmLinear_m1_test_RMSE
-
-tunedModel_svm_m1_to_raster_linear <- raster::predict(covs_m1, tuneResult_svm_m1_full_linear)
-tunedModel_svm_m2_to_raster_linear <- raster::predict(covs_m2, tuneResult_svm_m2_full_linear)
-tunedModel_svm_m1_to_raster_linear_gaspard <- raster::predict(covs_m1_gaspard, tuneResult_svm_m1_full_linear)
-tunedModel_svm_m2_to_raster_linear_gaspard <- raster::predict(covs_m2_gaspard, tuneResult_svm_m2_full_linear)
-tunedModel_svm_m1_to_raster_linear_quesnel <- raster::predict(covs_m1_quesnel, tuneResult_svm_m1_full_linear)
-tunedModel_svm_m2_to_raster_linear_quesnel <- raster::predict(covs_m2_quesnel, tuneResult_svm_m2_full_linear)
-tunedModel_svm_m1_to_raster_linear$layer[tunedModel_svm_m1_to_raster_linear$layer <= 0] = 0
-tunedModel_svm_m2_to_raster_linear$layer[tunedModel_svm_m2_to_raster_linear$layer <= 0] = 0
-tunedModel_svm_m1_to_raster_linear_gaspard$layer[tunedModel_svm_m1_to_raster_linear_gaspard$layer <= 0] = 0
-tunedModel_svm_m2_to_raster_linear_gaspard$layer[tunedModel_svm_m2_to_raster_linear_gaspard$layer <= 0] = 0
-tunedModel_svm_m1_to_raster_linear_quesnel$layer[tunedModel_svm_m1_to_raster_linear_quesnel$layer <= 0] = 0
-tunedModel_svm_m2_to_raster_linear_quesnel$layer[tunedModel_svm_m2_to_raster_linear_quesnel$layer <= 0] = 0
-writeRaster(tunedModel_svm_m1_to_raster_linear, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmLinear_100m.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m2_to_raster_linear, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmLinear_100m.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m1_to_raster_linear_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmLinear_100m_gaspard.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m2_to_raster_linear_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmLinear_100m_gaspard.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m1_to_raster_linear_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmLinear_100m_quesnel.tif", overwrite=TRUE)
-writeRaster(tunedModel_svm_m2_to_raster_linear_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmLinear_100m_quesnel.tif", overwrite=TRUE)
-```
-
-```{r, fig.show='hold', out.width="25%", echo=FALSE}
-wsvha_model1_svmLinear_100m_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmLinear_100m_gaspard.tif")
-wsvha_model2_svmLinear_100m_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmLinear_100m_gaspard.tif")
-wsvha_model1_svmLinear_100m_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_svmLinear_100m_quesnel.tif")
-wsvha_model2_svmLinear_100m_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model2_svmLinear_100m_quesnel.tif")
-plot(wsvha_model1_svmLinear_100m_gaspard, main="Model1 NO-STEMS (SVM Linear)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model2_svmLinear_100m_gaspard, main="Model1 NO-STEMS (SVM Linear)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model1_svmLinear_100m_quesnel, main="Model2 WITH-STEMS (SVM Linear)", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model2_svmLinear_100m_quesnel, main="Model2 WITH-STEMS (SVM Linear)", cex.main=0.8, maxpixels=22000000)
-hist(wsvha_model1_svmLinear_100m_gaspard, main="Model1 NO-STEMS (SVM Linear)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model2_svmLinear_100m_gaspard, main="Model1 NO-STEMS (SVM Linear)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model1_svmLinear_100m_quesnel, main="Model2 WITH-STEMS (SVM Linear)", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model2_svmLinear_100m_quesnel, main="Model2 WITH-STEMS (SVM Linear)", cex.main=0.8, maxpixels=22000000) 
-```
-
-
-## Model: Random Forest caret-trained
-grid_rf = expand.grid(.mtry=c(2,4))    
-rfbag_m1_tuned = train(
-  X_m1_boot, y_m1_boot,
-  method="rf", metric="RMSE", ntree=50,
-  trControl = fitControl_YeoJx1,
-  tuneGrid = grid_rf)
-
-rfbag_m1_tuned_train = train(
-  X_train_m1_boot, y_train_m1_boot,
-  method="rf", metric="RMSE", ntree=50,
-  trControl = fitControl_YeoJx1,
-  tuneGrid = grid_rf)
-
-
-rfbag_m1_tuned
-rfbag_m1_tuned_full = predict(rfbag_m1_tuned, newdata=faib_vri_true_m1_df, type="raw")
-rfbag_m1_tuned_test = predict(rfbag_m1_tuned_train, newdata=test_m1, type="raw")
-R2(rfbag_m1_tuned_full, faib_vri_true_m1_df$wsvha_L)
-MAE(rfbag_m1_tuned_full, faib_vri_true_m1_df$wsvha_L)
-RMSE(rfbag_m1_tuned_full, faib_vri_true_m1_df$wsvha_L)
-MAE(rfbag_m1_tuned_test, test_m1$wsvha_L)
-RMSE(rfbag_m1_tuned_test, test_m1$wsvha_L)
-
-wsvha_model1_randomForest_bootstrapped_demBased <- rfbag_m1_tuned
-save(wsvha_model1_randomForest_bootstrapped_demBased, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_randomForest_bootstrapped_demBased.RData")
-wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas <- raster::predict(covs_m1, wsvha_model1_randomForest_bootstrapped_demBased)
-wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard <- raster::predict(covs_m1_gaspard, wsvha_model1_randomForest_bootstrapped_demBased)
-wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel <- raster::predict(covs_m1_quesnel, wsvha_model1_randomForest_bootstrapped_demBased)
-##................................................
-wsvha_model1_randomForest_bagged_100m_gaspard$layer[wsvha_model1_randomForest_bagged_100m_gaspard$layer <= 0] = 0
-wsvha_model1_randomForest_bagged_100m_gaspard$layer[wsvha_model1_randomForest_bagged_100m_gaspard$layer <= 0] = 0
-wsvha_model1_randomForest_bagged_100m_quesnel$layer[wsvha_model1_randomForest_bagged_100m_quesnel$layer <= 0] = 0
-writeRaster(wsvha_model1_randomForest_bagged_100m_allAreas, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_randomForest_bagged_100m_allAreas.tif", overwrite=TRUE)
-writeRaster(wsvha_model1_randomForest_bagged_100m_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_randomForest_bagged_100m_gaspard.tif", overwrite=TRUE)
-writeRaster(wsvha_model1_randomForest_bagged_100m_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/wsvha/bootstrapped/wsvha_model1_randomForest_bagged_100m_quesnel.tif", overwrite=TRUE)
-graphics.off()
-par(mfrow = c(3, 1)) 
-plot(wsvha_model1_randomForest_bagged_100m_gaspard, main="Gaspard: Model1 RandomForest", cex.main=0.8, maxpixels=22000000)
-plot(wsvha_model1_randomForest_bagged_100m_quesnel, main="Quesnel: Model1 RandomForest", cex.main=0.8, maxpixels=22000000) 
-hist(wsvha_model1_randomForest_bagged_100m_allAreas, main="All Areas: Model1 RandomForest", cex.main=0.8, maxpixels=22000000) 
