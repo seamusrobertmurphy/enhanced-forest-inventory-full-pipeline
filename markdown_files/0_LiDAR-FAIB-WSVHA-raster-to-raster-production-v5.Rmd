@@ -50,34 +50,28 @@ The following markdown report provides a complete run-through and guide of a ras
 ## Import LiDAR: Load, list and merge chunks
 
 ```{r, eval=FALSE}
-#zip_file_be_gaspard = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/BareEarth.zip")
-#zip_file_vh_gaspard = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/VegHt.zip")
-#zip_file_be_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/BareEarth.zip")
-zip_file_vh_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/VegHt.zip")
-zip_file_be_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/BareEarth.zip")
-zip_file_vh_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/VegHt.zip")
+#filez_vh_gaspard = list.files("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
+#filez_be_gaspard = list.files("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+#filez_vh_quesnel = list.files("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
+#filez_be_quesnel = list.files("/media/seamus128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_be_ahbau = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/ahbau/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_vh_ahbau = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/ahbau/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_be_bells = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/bells/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_vh_bells = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/bells/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_be_big_valley = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/big_valley/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_vh_big_valley = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/big_valley/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_be_cariboo_lake = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/cariboo_lake/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_vh_cariboo_lake = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/cariboo_lake/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_be_charleson_marvincreek = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/charleson_marvincreek/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_vh_charleson_marvincreek = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/charleson_marvincreek/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_be_dash = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/dash/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_vh_dash = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/dash/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_be_hawks_creek = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/hawks_creek/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+filez_vh_hawks_creek = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaicz/hawks_creek/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
 
 
 
-zip_dir_vh_gaspard = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region")
-zip_dir_be_gaspard = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region")
-zip_dir_vh_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region")
-zip_dir_be_quesnel = ("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region")
 
-unzip(zip_file_vh_gaspard, exdir=zip_dir_vh_gaspard, overwrite = TRUE)
-unzip(zip_file_be_gaspard, exdir=zip_dir_be_gaspard, overwrite = TRUE)
-unzip(zip_file_vh_quesnel, exdir = zip_dir_vh_quesnel, overwrite = TRUE)
-unzip(zip_file_be_quesnel, exdir=zip_dir_be_quesnel, overwrite = TRUE)
-
-unzip_dir_vh_gaspard <- paste0("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/VegHt")
-unzip_dir_be_gaspard <- paste0("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/BareEarth")
-unzip_dir_vh_quesnel <- paste0("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/VegHt")
-unzip_dir_be_quesnel <- paste0("/media/seamus128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/BareEarth")
-
-filez_vh_gaspard = list.files(unzip_dir_vh_gaspard, full.names = T, all.files = FALSE, pattern = '.tif$') 
-filez_be_gaspard = list.files(unzip_dir_be_gaspard, full.names = T, all.files = FALSE, pattern = '.tif$') 
-filez_vh_quesnel = list.files(unzip_dir_vh_quesnel, full.names = T, all.files = FALSE, pattern = '.tif$') 
-filez_be_quesnel = list.files(unzip_dir_be_quesnel, full.names = T, all.files = FALSE, pattern = '.tif$') 
 
 elev_raster_list_quesnel <- lapply(filez_be_quesnel, raster)
 elev_raster_list_gaspard <- lapply(filez_be_gaspard, raster)

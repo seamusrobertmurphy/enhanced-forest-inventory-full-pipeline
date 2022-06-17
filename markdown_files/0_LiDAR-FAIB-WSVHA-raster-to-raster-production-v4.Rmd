@@ -1,5 +1,6 @@
 ---
-title: "Production Draft: 'DEM-based Pipeline'"
+title: "Production Code: 'DEM-based Pipeline'"
+subtitle: "Including Developed Blocks"
 author: "Cabin-GIS"
 date: "14/06/2022"
 output: 
@@ -47,7 +48,7 @@ The following markdown report provides a complete run-through and guide of a ras
 
 ![](images/Graphical_Abstract.png)
 
-## Import: Load covariates and mask layer
+## Import: Load covariates
 
 ```{r, fig.show='hold', out.width="25%"}
 elev_rast_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/elev_raster_100m_quesnel.tif")
@@ -62,8 +63,89 @@ species_class_rast_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/
 species_class_rast_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/species_class_raster_100m_gaspard.tif")
 lead_htop_rast_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/lead_htop_raster_100m_quesnel.tif")
 lead_htop_rast_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/lead_htop_raster_100m_gaspard.tif")
-masks_rast_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_quesnel.tif")
-masks_rast_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_gaspard.tif")
+#masks_rast_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_quesnel.tif")
+#masks_rast_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_gaspard.tif")
+```
+
+## Import: Load mask layers
+
+```{r, fig.show='hold', out.width="25%", eval=FALSE}
+mask_burn2017 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2017.shp")
+mask_burn2018 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2018.shp")
+mask_burn2021 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2021.shp")
+mask_burn2017 = mask_burn2017["BurnSev"]
+mask_burn2018 = mask_burn2018["BurnSev"]
+mask_burn2021 = mask_burn2021["BurnSev"]
+mask_burn2017 = dplyr::filter(mask_burn2017, BurnSev == 'High')
+mask_burn2018 = dplyr::filter(mask_burn2018, BurnSev == 'High')
+mask_burn2021 = dplyr::filter(mask_burn2021, BurnSev == 'High')
+lead_htop_sv_quesnel = as.polygons(lead_htop_rast_quesnel)
+lead_htop_sv_gaspard = as.polygons(lead_htop_rast_gaspard)
+lead_htop_sf_quesnel = sf::st_as_sf(lead_htop_sv_quesnel)
+lead_htop_sf_gaspard = sf::st_as_sf(lead_htop_sv_gaspard)
+mask_burn2017_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2017), lead_htop_sf_quesnel)
+mask_burn2017_gaspard = sf::st_intersection(sf::st_make_valid(mask_burn2017), lead_htop_sf_gaspard)
+mask_burn2018_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2018), lead_htop_sf_quesnel)
+mask_burn2018_gaspard = sf::st_intersection(sf::st_make_valid(mask_burn2018), lead_htop_sf_gaspard)
+mask_burn2021_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2021), lead_htop_sf_quesnel)
+mask_burn2021_gaspard = sf::st_intersection(sf::st_make_valid(mask_burn2021), lead_htop_sf_gaspard)
+masks_df_quesnel = full_join(as_tibble(mask_burn2017_quesnel), as_tibble(mask_burn2018_quesnel), as_tibble(mask_burn2021_quesnel), by = "geometry")
+masks_df_gaspard = full_join(as_tibble(mask_burn2017_gaspard), as_tibble(mask_burn2018_gaspard), as_tibble(mask_burn2021_gaspard), by = "geometry")
+masks_sf_quesnel = st_as_sf(masks_df_quesnel) # easier to combine by 'geometry'
+masks_sf_gaspard = st_as_sf(masks_df_gaspard) # easier to combine by 'geometry'
+
+#mask_clearcut = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/RSLT_CCRES_CLEAR.shp")
+#mask_clearcut_quesnel = sf::st_intersection(mask_clearcut, st_make_valid(lead_htop_sf_quesnel))
+#mask_clearcut_gaspard = sf::st_intersection(mask_clearcut, st_make_valid(lead_htop_sf_gaspard))
+#masks_df_quesnel = full_join(as_tibble(masks_sf_quesnel), as_tibble(mask_clearcut_quesnel), by = 'geometry')
+#masks_df_gaspard = full_join(as_tibble(masks_sf_gaspard), as_tibble(mask_clearcut_gaspard), by = 'geometry')
+#masks_sf_quesnel = st_as_sf(masks_df_quesnel)
+#masks_sf_gaspard = st_as_sf(masks_df_gaspard)
+
+#mask_blocks = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Blocks_Join.shp")
+#mask_blocks_quesnel = sf::st_intersection(mask_blocks, st_make_valid(lead_htop_sf_quesnel))
+#mask_blocks_gaspard = sf::st_intersection(mask_blocks, st_make_valid(lead_htop_sf_gaspard))
+#masks_df_quesnel = full_join(as_tibble(masks_sf_quesnel), as_tibble(mask_blocks_quesnel), by = 'geometry')
+#masks_df_gaspard = full_join(as_tibble(masks_sf_gaspard), as_tibble(mask_blocks_gaspard), by = 'geometry')
+#masks_sf_quesnel = st_as_sf(masks_df_quesnel)
+#masks_sf_gaspard = st_as_sf(masks_df_gaspard)
+
+mask_roads_tcc = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Roads.shp")
+mask_roads_tcc = sf::st_zm(mask_roads_tcc)
+mask_roads_tcc_quesnel = sf::st_intersection(mask_roads_tcc, st_make_valid(lead_htop_sf_quesnel))
+mask_roads_tcc_gaspard = sf::st_intersection(mask_roads_tcc, st_make_valid(lead_htop_sf_gaspard))
+mask_roads_tcc_quesnel = sf::st_buffer(mask_roads_tcc_quesnel, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
+mask_roads_tcc_gaspard = sf::st_buffer(mask_roads_tcc_gaspard, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
+mask_roads_ften = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/FTEN_Roads_All.shp")
+mask_roads_ften = sf::st_zm(mask_roads_ften)
+mask_roads_ften_quesnel = sf::st_intersection(mask_roads_ften, st_make_valid(lead_htop_sf_quesnel))
+mask_roads_ften_gaspard = sf::st_intersection(mask_roads_ften, st_make_valid(lead_htop_sf_gaspard))
+mask_roads_ften_quesnel = sf::st_buffer(mask_roads_ften_quesnel, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
+mask_roads_ften_gaspard = sf::st_buffer(mask_roads_ften_gaspard, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
+masks_df_quesnel = full_join(as_tibble(masks_sf_quesnel), as_tibble(mask_roads_tcc_quesnel), as_tibble(mask_roads_ften_quesnel), by = 'geometry')
+masks_df_gaspard = full_join(as_tibble(masks_sf_gaspard), as_tibble(mask_roads_tcc_gaspard), as_tibble(mask_roads_ften_gaspard), by = 'geometry')
+masks_sf_quesnel = st_as_sf(masks_df_quesnel)
+masks_sf_gaspard = st_as_sf(masks_df_gaspard)
+
+masks_rast_quesnel = rasterize(vect(masks_sf_quesnel), lead_htop_rast_quesnel, touches = TRUE)
+masks_rast_gaspard = rasterize(vect(masks_sf_gaspard), lead_htop_rast_gaspard, touches = TRUE)
+masks_raster_quesnel = raster::raster(masks_rast_quesnel)
+masks_raster_gaspard = raster::raster(masks_rast_gaspard)
+writeRaster(masks_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_blockdev_raster_100m_quesnel.tif", overwrite=TRUE)
+writeRaster(masks_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_blockdev_raster_100m_gaspard.tif", overwrite=TRUE)
+ggplot(masks_sf_gaspard) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+ggplot(masks_sf_quesnel) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+```
+
+```{r, fig.show='hold', out.width="50%", echo=FALSE}
+masks_rast_quesnel = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_blockdev_raster_100m_quesnel.tif")
+masks_rast_gaspard = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_blockdev_raster_100m_gaspard.tif")
+masks_sv_quesnel = as.polygons(masks_rast_quesnel)
+masks_sv_gaspard = as.polygons(masks_rast_gaspard)
+masks_sf_quesnel = sf::st_as_sf(masks_sv_quesnel)
+masks_sf_gaspard = sf::st_as_sf(masks_sv_gaspard)
+ggplot(masks_sf_gaspard) + geom_sf(aes(fill = 'red'), show.legend = FALSE, main="Gaspard Mask")
+ggplot(masks_sf_quesnel) + geom_sf(aes(fill = 'red'), show.legend = FALSE, main="Quesnel Mask")
 ```
 
 ## Tidy: Align, clip and apply masking
@@ -248,34 +330,33 @@ faib_psp$lead_htop = as.numeric(faib_psp$lead_htop)
 faib_psp$species_class = as.numeric(faib_psp$species_class)
 faib_psp$stemsha_L = as.numeric(faib_psp$stemsha_L)
 faib_psp$wsvha_L = as.numeric(faib_psp$wsvha_L)
-faib_vri_true_m1_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "wsvha_L", "stemsha_L")] 
+faib_vri_true_m1_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "wsvha_L")] 
+faib_vri_true_m1_df = na.omit(faib_vri_true_m1_df)
 
-stemsha_L_raster = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/chm-based/stemsha_L_raster_100m_allSites.tif")
-stemsha_L_raster_df = as.data.frame(rasterToPoints(stemsha_L_raster))
-dens.fun = approxfun(density(stemsha_L_raster_df$stemsha_L, adjust=0.8))
+lead_htop_raster_df = as.data.frame(rasterToPoints(lead_htop_raster))
+dens.fun = approxfun(density(lead_htop_raster_df$lead_htop, adjust=0.8))
 B = 1000
 n = 4
-faib_vri_true_m1_df_boot = dplyr::sample_n(faib_vri_true_m1_df, B * n, weight_by = dist.fun(faib_vri_true_m1_df$stemsha_L), replace = TRUE)
-truehist(faib_vri_true_m1_df$stemsha_L, main="Stems/ha (un-Bootstrapped FAIB)")
-truehist(faib_vri_true_m1_df_boot$stemsha_L, main="Stems/ha (Bootstrapped FAIB)")
+faib_vri_true_m1_df_boot = dplyr::sample_n(faib_vri_true_m1_df, B * n, weight_by = dens.fun(faib_vri_true_m1_df$lead_htop), replace = TRUE)
+faib_vri_true_m1_df_boot = na.omit(faib_vri_true_m1_df_boot)
+truehist(faib_vri_true_m1_df$lead_htop, main="CHM (un-Bootstrapped FAIB)")
+truehist(faib_vri_true_m1_df_boot$lead_htop, main="CHM (Bootstrapped FAIB)")
 
-faib_vri_true_m1_df_boot_stemfree = faib_vri_true_m1_df_boot[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "wsvha_L")] 
-faib_vri_true_m1_df_boot_stemfree = na.omit(faib_vri_true_m1_df_boot_stemfree)
-faib_vri_true_m1_df_boot_stemfree_split = createDataPartition(faib_vri_true_m1_df_boot_stemfree$wsvha_L, p=0.80, list=F)
-train_m1_boot = faib_vri_true_m1_df_boot_stemfree[faib_vri_true_m1_df_boot_stemfree_split, ]
-test_m1_boot = faib_vri_true_m1_df_boot_stemfree[-faib_vri_true_m1_df_boot_stemfree_split, ]
+faib_vri_true_m1_df_boot_split = createDataPartition(faib_vri_true_m1_df_boot$wsvha_L, p=0.80, list=F)
+faib_vri_true_m1_df_split = createDataPartition(faib_vri_true_m1_df$wsvha_L, p=0.80, list=F)
+
+train_m1_boot = faib_vri_true_m1_df_boot[faib_vri_true_m1_df_boot_split, ]
+test_m1_boot = faib_vri_true_m1_df_boot[-faib_vri_true_m1_df_boot_split, ]
+train_m1 = faib_vri_true_m1_df[faib_vri_true_m1_df_split, ]
+test_m1 = faib_vri_true_m1_df[-faib_vri_true_m1_df_split, ]
+
 X_train_m1_boot = train_m1_boot[,-7]
 y_train_m1_boot = train_m1_boot[, 7]
 X_test_m1_boot = test_m1_boot[,-7]
 y_test_m1_boot = test_m1_boot[, 7]
-X_m1_boot = faib_vri_true_m1_df_boot_stemfree[,-7]
-y_m1_boot = faib_vri_true_m1_df_boot_stemfree[, 7]
+X_m1_boot = faib_vri_true_m1_df_boot[,-7]
+y_m1_boot = faib_vri_true_m1_df_boot[, 7]
 
-faib_vri_true_m1_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "wsvha_L")] 
-faib_vri_true_m1_df = na.omit(faib_vri_true_m1_df)
-faib_vri_true_m1_df_split = createDataPartition(faib_vri_true_m1_df$wsvha_L, p=0.80, list=F)
-train_m1 = faib_vri_true_m1_df[faib_vri_true_m1_df_split, ]
-test_m1 = faib_vri_true_m1_df[-faib_vri_true_m1_df_split, ]
 X_train_m1 = train_m1[,-7]
 y_train_m1 = train_m1[, 7]
 X_test_m1 = test_m1[,-7]
@@ -286,7 +367,7 @@ y_m1 = faib_vri_true_m1_df[, 7]
 
 ## Model: Random Forest Regression Tree
 
-```{r, fig.show='hold', out.width="25%", eval=FALSE}
+```{r, fig.show='hold', out.width="50%", eval=FALSE}
 tuneResult_rf_m1_full <- tune.randomForest(
   X_m1_boot, y_m1_boot,
   mtry = c(2:10), ntree = 50,
@@ -320,7 +401,7 @@ wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard$layer[wsvha_model1_
 wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel$layer[wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel$layer <= 0] = 0
 # Save outputs
 writeRaster(wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas, overwrite=TRUE,
-  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas.tif")
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas.tif")
 writeRaster(wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard, overwrite=TRUE,
   filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard.tif")
 writeRaster(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel,  overwrite=TRUE,
@@ -332,4 +413,16 @@ hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard, main="Gaspard
 hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel, main="Quesnel WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000) 
 ```
 
-\`\`\`{r, fig.show='hold', out.width="25%", echo=FALSE} wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard.tif") wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel.tif") plot(wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard, main="Gaspard WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000) plot(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel, main="Quesnel WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000) hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard, main="Gaspard WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000) hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel, main="Quesnel WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000)
+```{r, fig.show='hold', out.width="50%", echo=FALSE}
+wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard =
+  raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard.tif") 
+
+wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel =
+  raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel.tif") 
+
+plot(wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard, main="Gaspard WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000)
+plot(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel, main="Quesnel WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000)
+hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_gaspard, main="Gaspard WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000)
+hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnel, main="Quesnel WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000)
+
+```
