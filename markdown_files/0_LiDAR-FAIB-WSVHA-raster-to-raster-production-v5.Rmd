@@ -47,9 +47,11 @@ The following markdown report provides a complete run-through and guide of a ras
 
 ![](images/graphical-abstract.png)
 
-## Import LiDAR: Load, list and merge chunks
+## Import LiDAR: Load, list and merge chunks 
 
 ```{r, eval=FALSE}
+###watch out for small/large font changes###
+
 #filez_vh_gaspard = list.files("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
 #filez_be_gaspard = list.files("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/gaspard_region/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
 #filez_vh_quesnel = list.files("/media/seamus/128GB_WORKD/EFI-TCC/LiDAR_Data/quesnel_region/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
