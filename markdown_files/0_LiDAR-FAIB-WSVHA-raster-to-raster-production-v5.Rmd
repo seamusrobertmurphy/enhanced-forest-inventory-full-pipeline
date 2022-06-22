@@ -192,15 +192,14 @@ elev_rast_all = terra::rast(elev_raster_all)
 writeRaster(elev_rast_all, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_allAreas.tif", overwrite=TRUE)
 ```
 
-```{r, fig.show='hold', out.width="25%", echo=FALSE, cache=TRUE}
-elev_raster_gaspard = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/elev_raster_100m_gaspard.tif")
-elev_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/elev_raster_100m_quesnel.tif")
+```{r, fig.show='hold', out.width="25%", echo=FALSE}
 elev_raster_ahbau = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/ahbau/elev_raster_100m_ahbau.tif")
 elev_raster_bells = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/elev_raster_100m_bells.tif")
 elev_raster_big_valley = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/elev_raster_100m_big_valley.tif")
 elev_raster_cariboo_lake = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/cariboo_lake/elev_raster_100m_cariboo_lake.tif")
 elev_raster_charleson_marvincreek = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/charleson_marvincreek/elev_raster_100m_charleson_marvincreek.tif")
 elev_raster_dash = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/dash/elev_raster_100m_dash.tif")
+elev_raster_gaspard = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/elev_raster_100m_gaspard.tif")
 elev_raster_hawks_creek = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/hawks_creek/elev_raster_100m_hawks_creek.tif")
 elev_raster_little_river = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_river/elev_raster_100m_little_river.tif")
 elev_raster_little_swift = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_swift/elev_raster_100m_little_swift.tif")
@@ -209,15 +208,15 @@ elev_raster_meldrum = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosai
 elev_raster_phillips_anahim_lake = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/phillips_anahim_lake/elev_raster_100m_phillips_anahim_lake.tif")
 elev_raster_piltz = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/piltz/elev_raster_100m_piltz.tif")
 elev_raster_punky_clisbako = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/elev_raster_100m_punky_clisbako.tif")
+elev_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/elev_raster_100m_quesnel.tif")
 
-elev_rast_gaspard = terra::rast(elev_raster_gaspard)
-elev_rast_quesnel = terra::rast(elev_raster_quesnel)
 elev_rast_ahbau = terra::rast(elev_raster_ahbau)
 elev_rast_bells = terra::rast(elev_raster_bells)
 elev_rast_big_valley = terra::rast(elev_raster_big_valley) 
 elev_rast_cariboo_lake = terra::rast(elev_raster_cariboo_lake)
 elev_rast_charleson_marvincreek = terra::rast(elev_raster_charleson_marvincreek)
 elev_rast_dash = terra::rast(elev_raster_dash)
+elev_rast_gaspard = terra::rast(elev_raster_gaspard)
 elev_rast_hawks_creek = terra::rast(elev_raster_hawks_creek)
 elev_rast_little_river = terra::rast(elev_raster_little_river)
 elev_rast_little_swift = terra::rast(elev_raster_little_swift)
@@ -226,6 +225,7 @@ elev_rast_meldrum = terra::rast(elev_raster_meldrum)
 elev_rast_phillips_anahim_lake = terra::rast(elev_raster_phillips_anahim_lake)
 elev_rast_piltz = terra::rast(elev_raster_piltz)
 elev_rast_punky_clisbako = terra::rast(elev_raster_punky_clisbako) 
+elev_rast_quesnel = terra::rast(elev_raster_quesnel)
 
 terra::plot(elev_rast_gaspard, main = 'Gaspard DEM (100m res)')
 terra::plot(elev_rast_quesnel, main = 'Quesnel DEM (100m res)')
@@ -383,7 +383,7 @@ writeRaster(lead_htop_rast_punky_clisbako, filename = "/media/seamus/Ubuntu 22_0
 
 lead_htop_raster_list = list(
   lead_htop_raster_quesnel, lead_htop_raster_gaspard, 
-  lead_htop_raster_ahbau, lead_htop_raster_bells, 
+  lead_htop_raster_ahbau, #lead_htop_raster_bells, 
   lead_htop_raster_big_valley, lead_htop_raster_cariboo_lake, 
   lead_htop_raster_charleson_marvincreek, lead_htop_raster_dash,
   lead_htop_raster_hawks_creek, lead_htop_raster_little_river,
@@ -396,14 +396,13 @@ writeRaster(lead_htop_raster_all, filename = "/media/seamus/Ubuntu 22_04 LTS amd
 ```
 
 ```{r, fig.show='hold', out.width="25%", echo=FALSE, cache=TRUE}
-lead_htop_raster_gaspard = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/lead_htop_raster_100m_gaspard.tif")
-lead_htop_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/lead_htop_raster_100m_quesnel.tif")
 lead_htop_raster_ahbau = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/ahbau/lead_htop_raster_100m_ahbau.tif")
 lead_htop_raster_bells = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/lead_htop_raster_100m_bells.tif")
 lead_htop_raster_big_valley = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/lead_htop_raster_100m_big_valley.tif")
 lead_htop_raster_cariboo_lake = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/cariboo_lake/lead_htop_raster_100m_cariboo_lake.tif")
 lead_htop_raster_charleson_marvincreek = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/charleson_marvincreek/lead_htop_raster_100m_charleson_marvincreek.tif")
 lead_htop_raster_dash = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/dash/lead_htop_raster_100m_dash.tif")
+lead_htop_raster_gaspard = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/lead_htop_raster_100m_gaspard.tif")
 lead_htop_raster_hawks_creek = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/hawks_creek/lead_htop_raster_100m_hawks_creek.tif")
 lead_htop_raster_little_river = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_river/lead_htop_raster_100m_little_river.tif")
 lead_htop_raster_little_swift = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_swift/lead_htop_raster_100m_little_swift.tif")
@@ -412,15 +411,15 @@ lead_htop_raster_meldrum = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/
 lead_htop_raster_phillips_anahim_lake = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/phillips_anahim_lake/lead_htop_raster_100m_phillips_anahim_lake.tif")
 lead_htop_raster_piltz = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/piltz/lead_htop_raster_100m_piltz.tif")
 lead_htop_raster_punky_clisbako = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/lead_htop_raster_100m_punky_clisbako.tif")
+lead_htop_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/lead_htop_raster_100m_quesnel.tif")
 
-lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
-lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
 lead_htop_rast_ahbau = terra::rast(lead_htop_raster_ahbau)
 lead_htop_rast_bells = terra::rast(lead_htop_raster_bells)
 lead_htop_rast_big_valley = terra::rast(lead_htop_raster_big_valley) 
 lead_htop_rast_cariboo_lake = terra::rast(lead_htop_raster_cariboo_lake)
 lead_htop_rast_charleson_marvincreek = terra::rast(lead_htop_raster_charleson_marvincreek)
 lead_htop_rast_dash = terra::rast(lead_htop_raster_dash)
+lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
 lead_htop_rast_hawks_creek = terra::rast(lead_htop_raster_hawks_creek)
 lead_htop_rast_little_river = terra::rast(lead_htop_raster_little_river)
 lead_htop_rast_little_swift = terra::rast(lead_htop_raster_little_swift)
@@ -429,19 +428,15 @@ lead_htop_rast_meldrum = terra::rast(lead_htop_raster_meldrum)
 lead_htop_rast_phillips_anahim_lake = terra::rast(lead_htop_raster_phillips_anahim_lake)
 lead_htop_rast_piltz = terra::rast(lead_htop_raster_piltz)
 lead_htop_rast_punky_clisbako = terra::rast(lead_htop_raster_punky_clisbako) 
+lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
 
-summary(lead_htop_rast_ahbau)
-summary(lead_htop_rast_bells)
-summary(lead_htop_rast_)
-
-terra::plot(lead_htop_rast_gaspard, main = 'Gaspard CHM (100m res)')
-terra::plot(lead_htop_rast_quesnel, main = 'Quesnel CHM (100m res)')
 terra::plot(lead_htop_rast_ahbau, main = 'Ahbau CHM (100m res)')
 terra::plot(lead_htop_rast_bells, main = 'Bells CHM (100m res)')
 terra::plot(lead_htop_rast_big_valley, main = 'Big Valley CHM (100m res)')
 terra::plot(lead_htop_rast_cariboo_lake, main = 'Cariboo Lake CHM (100m res)')
 terra::plot(lead_htop_rast_charleson_marvincreek, main = 'Charleson Marvin Creek CHM (100m res)')
 terra::plot(lead_htop_rast_dash, main = 'Dash CHM (100m res)')
+terra::plot(lead_htop_rast_gaspard, main = 'Gaspard CHM (100m res)')
 terra::plot(lead_htop_rast_hawks_creek, main = 'Hawks Creek CHM (100m res)')
 terra::plot(lead_htop_rast_little_river, main = 'Little River CHM (100m res)')
 terra::plot(lead_htop_rast_little_swift, main = 'Little Swift CHM (100m res)')
@@ -450,6 +445,8 @@ terra::plot(lead_htop_rast_meldrum, main = 'Meldrum CHM (100m res)')
 terra::plot(lead_htop_rast_phillips_anahim_lake, main = 'Phillips Anahim Lake CHM (100m res)')
 terra::plot(lead_htop_rast_piltz, main = 'Piltz CHM (100m res)')
 terra::plot(lead_htop_rast_punky_clisbako, main = 'Punky Clisbako CHM (100m res)')
+terra::plot(lead_htop_rast_quesnel, main = 'Quesnel CHM (100m res)')
+
 ```
 
 ```{r, echo=FALSE}
