@@ -1,0 +1,273 @@
+---
+title: "PointCloud Processing: Bells & Big Valley Operating Areas"
+author: "CabinGIS"
+date: "26/06/2022"
+output: 
+  pdf_document:
+    toc: TRUE
+    toc_depth: 5
+    number_sections: TRUE
+    latex_engine: xelatex
+  zotero: TRUE
+  
+#bibliography: references.bib   
+---
+
+```{r setup, echo=FALSE, message=FALSE,warning=FALSE, error=FALSE}
+library(lidR)
+#library(mapview)
+library(rgl)
+library(pandocfilters)
+library(rmarkdown)
+library(formatR)
+library(gitignore)
+library(tinytex)
+library(knitr)
+library(raster)
+library(webdriver)
+library(webshot)
+library(webshot2)
+library(terra)
+library(matlab)
+#webshot::install_phantomjs(force = TRUE)
+knit_hooks$set(webgl = hook_webgl)
+knit_hooks$set(rgl.static = hook_rgl)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, error=FALSE, message = FALSE)
+set.seed(23)
+```
+
+## Action {.unnumbered}
+
+This following report includes documentation of point cloud processing to derive DEM and CHM rasters for Bells and Big Valley Operating Areas.
+
+# 1.1 Import Point Cloud: Unzip
+
+```{r, echo=TRUE, eval=FALSE}
+#zip_file_ahbau = ("./14_LiDR-Processing_GitRepo/Data/Ahbau.zip")
+#zip_dir_ahbau_top = ("./14_LiDR-Processing_GitRepo/Data/")
+#unzip(zip_file_ahbau, 
+ #     exdir = zip_dir_ahbau_top, 
+  #    overwrite = TRUE)
+zip_dir_bells_top = ("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/las_data/")
+zip_dir_bells_sub = ("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/las_data/Las_v12_ASPRS")
+zip_file_bells_sub = list.files(
+  zip_dir_bells_sub,
+  full.names = T,
+  recursive = F,
+  pattern = '.7z$')
+#Write RAMP function and extract
+un7zip = function(archive, where) {
+  archive <- normalizePath(archive)
+  current_path <- setwd(where)
+  system(paste("7zr x", archive, sep = " "))
+  setwd(current_path) }
+un7zip(zip_dir_bells_sub, zip_dir_bells_top)
+
+zip_dir_big_valley_top = ("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/las_data/")
+zip_dir_big_valley_sub = ("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/las_data/Las_v12_ASPRS")
+zip_file_big_valley_sub = list.files(
+  zip_dir_big_valley_sub,
+  full.names = T,
+  recursive = F,
+  pattern = '.7z$')
+#Write RAMP function and extract
+un7zip = function(archive, where) {
+  archive <- normalizePath(archive)
+  current_path <- setwd(where)
+  system(paste("7zr x", archive, sep = " "))
+  setwd(current_path) }
+un7zip(zip_dir_big_valley_sub, zip_dir_big_valley_top)
+```
+
+# 1.2 Import Point Cloud: Validate and Assign Catalog Collections
+
+```{r, eval=TRUE}
+las_ctg_bells_indexed = readALSLAScatalog("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/las_data/Las_v12_ASPRS/", select = "xyzcr",)
+las_ctg_big_valley_indexed = readALSLAScatalog("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/las_data/Las_v12_ASPRS/", select = "xyzcr",)
+las_check(las_ctg_bells)
+las_check(las_ctg_big_valley)
+is.indexed(las_ctg_bells_indexed)
+```
+
+# 1.3 Import Point Cloud: Define Chunk Parameters
+
+```{r, eval=FALSE}
+opt_output_files(las_ctg_bells_indexed) = paste0(tempdir(), "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/las_data/las_ctg_bells_indexed")
+opt_output_files(las_ctg_big_valley_indexed) = paste0(tempdir(), "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/las_data/las_ctg_big_valley_indexed")
+opt_select(las_ctg_bells_indexed) = "xyzcr"
+opt_select(las_ctg_big_valley_indexed) = "xyzcr"
+opt_filter(las_ctg_bells_indexed) = '-drop_class 19' 
+opt_filter(las_ctg_big_valley_indexed) = '-drop_class 19' 
+opt_chunk_size(las_ctg_bells_indexed) = 1000 
+opt_chunk_size(las_ctg_big_valley_indexed) = 1000 
+opt_chunk_buffer(las_ctg_bells_indexed) = 10
+opt_chunk_buffer(las_ctg_big_valley_indexed) = 10
+filter_duplicates(las_ctg_bells_indexed)
+filter_duplicates(las_ctg_big_valley_indexed)
+plot(las_ctg_bells_indexed, chunk = TRUE)
+plot(las_ctg_big_valley_indexed, chunk = TRUE)
+```
+
+
+# 2.1 Process Point Cloud: Classify Ground Points with Cloth Simulation Algorithm
+
+
+```{r, eval=FALSE}
+library(RCSF)
+opt_output_files(las_ctg_bells_csf) =  paste0(tempdir(), "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/las_data/las_ctg_bells_indexed")
+opt_output_files(las_ctg_big_valley_csf) =  paste0(tempdir(), "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/las_data/las_ctg_big_valley_indexed")
+las_ctg_bells_csf = classify_ground(las_ctg_bells_indexed, csf(sloop_smooth=TRUE, 0.5, 1))
+las_ctg_big_valley_csf = classify_ground(las_ctg_big_valley_indexed, csf(sloop_smooth=TRUE, 0.5, 1))
+```
+
+
+# 2.2 Process Point Cloud: Classify and Remove Noise with Statistical Outlier Algorithm
+
+```{r, eval=FALSE}
+opt_output_files(las_ctg_ahbau_csf) = paste0(tempdir(), "./Data/las_ctg_ahbau_csf_so")
+opt_select(las_ctg_ahbau_csf) = "xyzcr"
+opt_filter(las_ctg_ahbau_csf) = "-drop_class 19"
+opt_chunk_size(las_ctg_ahbau_csf) = 1000
+opt_chunk_buffer(las_ctg_ahbau_csf) = 10
+sensor(las_ctg_ahbau_csf) = "als"
+index(las_ctg_ahbau_csf) = "quadtree"
+
+las_ctg_ahbau_csf_so = classify_noise(las_ctg_ahbau_csf, sor(k=10, m=3))
+opt_output_files(las_ctg_ahbau_csf_so) = paste0(tempdir(), "./Data/las_ctg_ahbau_csf_sor")
+las_ctg_ahbau_csf_sor = filter_poi(las_ctg_ahbau_csf_so, Classification != LASNOISE)
+
+las_tile_ahbau_csf_so = classify_noise(las_tile_ahbau_csf, sor(k=10, m=3))
+las_tile_ahbau_pmf_so = classify_noise(las_tile_ahbau_pmf, sor(k=10, m=3))
+plot(las_tile_ahbau_csf_so, color = "Classification", bg = "white") 
+plot(las_tile_ahbau_pmf_so, color = "Classification", bg = "white") 
+las_tile_ahbau_csf_sor = filter_poi(las_tile_ahbau_csf_so, Classification != LASNOISE)
+las_tile_ahbau_pmf_sor = filter_poi(las_tile_ahbau_pmf_so, Classification != LASNOISE)
+```
+
+<img src="13_lidR_PointCloud_Processing_files/markdown_pngs/las_tile_ahbau_csf_so.png" width="1200"/>
+
+<img src="13_lidR_PointCloud_Processing_files/markdown_pngs/las_tile_ahbau_pmf_so.png" width="1200"/>
+
+# Digital Terrain Model
+
+A digital terrain model was derived from a continuous, cleaned point cloud by applying the 'Inverse Distance Weighting' algorithm [\@tu2020]. The LAScataolog was read in again for faster processing. The Inverse Distance Weighting algorithm was chosen for its improved running time and its sensitivity to lake anomalies. This was implemented twice using the sample tile to compare visually between those derived from 'CSF' and 'PMF' processing. Parameters were set to default maximum radius of 50m, neighbourhood of 10 and inverse distance weighting power of 2, with a resolution of 1m.
+
+```{r, eval=FALSE}
+las_tile_ahbau_csf_sor_dtm = grid_terrain(las_tile_ahbau_csf_sor, 1, knnidw(10, 2, 50))
+las_tile_ahbau_pmf_sor_dtm = grid_terrain(las_tile_ahbau_pmf_sor, 1, knnidw(10, 2, 50))
+las_tile_ahbau_csf_sor_dtm_plot = plot_dtm3d(las_tile_ahbau_csf_sor_dtm, bg = "white") 
+las_tile_ahbau_pmf_sor_dtm_plot = plot_dtm3d(las_tile_ahbau_pmf_sor_dtm, bg = "white") 
+```
+
+<img src="13_lidR_PointCloud_Processing_files/markdown_pngs/las_tile_ahbau_csf_sor_dtm.png" width="1200"/>
+
+<img src="13_lidR_PointCloud_Processing_files/markdown_pngs/las_tile_ahbau_pmf_sor_dtm.png" width="1200"/>
+
+Visually, the cloth simulation filter produced better DEM result than the pmf that appears grainy. Rousseau (2021: 3.2) mentioned that the progressive morphological filter is an originally raster-based algorithm, while 'csf' may perform better with lidR operations that are point-orientated. The former was chosen to derive below a DEM raster for the Ahbau catalog. TODO: run individual las_check on two chunks showing warnings in processing image report of 'grid_terrain...knnidw()' operation bottom image:
+
+```{r, eval=FALSE, rgl.static=TRUE}
+opt_output_files(las_ctg_ahbau_csf_sor) = paste0(tempdir(), "./Data/las_ctg_ahbau_dtm")
+opt_select(las_ctg_ahbau_csf_sor) = "xyzcr"
+opt_filter(las_ctg_ahbau_csf_sor) = '-drop_class 19' 
+opt_chunk_size(las_ctg_ahbau_csf_sor) = 1000 
+opt_chunk_buffer(las_ctg_ahbau_csf_sor) = 10
+sensor(las_ctg_ahbau_csf_sor) = 'als'
+index(las_ctg_ahbau_csf_sor) = "quadtree"
+las_ctg_ahbau_csf_dtm = grid_terrain(las_ctg_ahbau, 1, knnidw())
+#opt_stop_early(las_ctg_ahbau_csf) <- FALSE #to skip voids
+#las_ctg_ahbau_csf_dtm = grid_terrain(las_ctg_ahbau, 1, tin())
+las_ctg_ahbau_csf_sor_dtm_crop = crop(
+  las_ctg_ahbau_csf_dtm, extent(las_ctg_ahbau_csf_dtm) - 10)
+crs(las_ctg_ahbau_csf_sor_dtm_crop) = 3005
+las_ctg_ahbau_csf_sor_dtm_slope = terra::terrain(
+  las_ctg_ahbau_csf_sor_dtm_crop, "slope", unit = "radians")
+las_ctg_ahbau_csf_sor_dtm_aspect = terra::terrain(
+  las_ctg_ahbau_csf_sor_dtm_crop, "aspect", unit = "radians")
+las_ctg_ahbau_csf_sor_dtm_shade = hillShade(
+  las_ctg_ahbau_csf_sor_dtm_slope, las_ctg_ahbau_csf_sor_dtm_aspect, 40, 270)
+plot(las_ctg_ahbau_csf_sor_dtm_shade, col=grey(0:100/100), legend=FALSE)
+```
+
+<img src="13_lidR_PointCloud_Processing_files/markdown_pngs/las_ctg_ahbau_hillshade.png" width="1200"/>
+
+<img src="13_lidR_PointCloud_Processing_files/markdown_pngs/las_ctg_ahbau_dtm_processing.png" width="1200"/>
+
+# Height Normalization of Point Cloud
+
+```{r, eval=FALSE}
+opt_output_files(las_ctg_ahbau_csf_sor) =  paste0(tempdir(), "./Data/las_ctg_ahbau_norm")
+opt_select(las_ctg_ahbau_csf_sor) = "xyzr"
+opt_filter(las_ctg_ahbau_csf_sor) = '-keep_first' 
+opt_chunk_size(las_ctg_ahbau_csf_sor) = 1000 
+opt_chunk_buffer(las_ctg_ahbau_csf_sor) = 10
+sensor(las_ctg_ahbau_csf_sor) = 'als'
+index(las_ctg_ahbau_csf_sor) = "quadtree"
+
+las_ctg_ahbau_csf_sor_norm = normalize_height(las_ctg_ahbau_csf_sor, knnidw())
+las_tile_ahbau_csf_sor_norm = normalize_height(las_tile_ahbau_csf_sor, knnidw())
+hist(filter_ground(las_tile_ahbau_csf_sor_norm)$Z, 
+     breaks = seq(-0.6, 0.6, 0.01), main = "", xlab = "Elevation")
+plot(las_tile_ahbau_csf_sor_norm, bg = "white")
+```
+
+<img src="13_lidR_PointCloud_Processing_files/markdown_pngs/las_tile_ahbau_norm.png" width="1200"/>
+
+![](13_lidR_PointCloud_Processing_files/markdown_pngs/las_tile_ahbau_norm_histogram.png)
+
+# Area-Based Canopy Height Model
+
+```{r, eval=FALSE}
+opt_selopt_output_files(las_ctg_ahbau_csf_sor_norm) = paste0(tempdir(), "./Data/las_ctg_ahbau_dtm")
+opt_select(las_ctg_ahbau_csf_sor_norm) = "xyzr"
+opt_filter(las_ctg_ahbau_csf_sor_norm) = '-keep_first' 
+opt_chunk_size(las_ctg_ahbau_csf_sor_norm) = 1000 
+opt_chunk_buffer(las_ctg_ahbau_csf_sor_norm) = 10
+sensor(las_ctg_ahbau_csf_sor_norm) = 'als'
+index(las_ctg_ahbau_csf_sor_norm) = "auto"
+
+las_ctg_ahbau_chm = grid_canopy(las_ctg_ahbau_csf_sor_norm, 1, dsmtin(8))
+las_tile_ahbau_chm = grid_canopy(las_tile_ahbau_csf_sor_norm, 1, dsmtin(8))
+plot(las_tile_ahbau_chm, col = height.colors(50))
+```
+
+![](13_lidR_PointCloud_Processing_files/markdown_pngs/las_tile_ahbau_chm.png)
+
+# Individual Tree Metrics & Canopy Height Model
+
+```{r, eval=FALSE}
+
+las_tile_ahbau_csf_sor_norm_ttops = find_trees(las_tile_ahbau_csf_sor_norm, lmf(4), uniqueness = "bitmerge")
+algo = dalponte2016(las_tile_ahbau_chm, las_tile_ahbau_csf_sor_norm_ttops)
+las_tile_ahbau_csf_sor_norm_ttops_segmented = segment_trees(las_tile_ahbau_csf_sor_norm, algo)
+
+
+#filter_poi(las_tile_ahbau_csf_sor_norm, Z < 0 & Z >= 0.15)
+myMetrics = tree_metrics(las_tile_ahbau_csf_sor_norm, ~list(
+    zmean   = mean(z),
+    zmax    = max(z),
+    q01     = quantile(z, probs = c(0.01)),     # 1st percentile value for cell
+    q05     = quantile(z, probs = c(0.05)),     # 5th percentile value for cell
+    q10     = quantile(z, probs = c(0.1)),      # 10th percentile value for cell
+    q20     = quantile(z, probs = c(0.2)),      # 20th percentile value for cell
+    q30     = quantile(z, probs = c(0.3)),      # 30th percentile value for cell
+    q40     = quantile(z, probs = c(0.4)),      # 40th percentile value for cell
+    q50     = quantile(z, probs = c(0.5)),      # 50th percentile value for cell
+    q60     = quantile(z, probs = c(0.6)),      # 60th percentile value for cell
+    q70     = quantile(z, probs = c(0.7)),      # 70th percentile value for cell
+    q75     = quantile(z, probs = c(0.75)),     # 75th percentile value for cell
+    q80     = quantile(z, probs = c(0.8)),      # 80th percentile value for cell
+    q90     = quantile(z, probs = c(0.9)),      # 90th percentile value for cell
+    q95     = quantile(z, probs = c(0.95)),     # 95th percentile value for cell
+    q99     = quantile(z, probs = c(0.99)))     # 99th percentile value for cell
+  
+
+
+myMetrics_htop_plot = plot(myMetrics$q95)
+
+metrics = tree_metrics(las_tile_ahbau_csf_sor_norm_ttops_segmented, ~list(z_max = max(Z), z_mean = mean(Z)))
+metrics_htop = filter_poi(las_tile_ahbau_csf_sor_norm_ttops_segmented, treeID, %in%, metrics$z_mean=>95))
+metrics_htop = tree_metrics(las_tile_ahbau_csf_sor_norm,quantile(z, probs = c(0.95))
+plot(metrics_htop)
+```
+
+![](13_lidR_PointCloud_Processing_files/markdown_pngs/las_tile_ahbau_norm_histogram.png)

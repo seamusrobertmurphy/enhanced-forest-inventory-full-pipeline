@@ -43,11 +43,287 @@ set.seed(123)
 
 ## Action:
 
-For purpose of data quality control this report documents neccessary steps coded to stitch chunk mosaics for each of the 16 Operating Areas at 1m resolution, and then reprojection and aggregation to 3005EPSG and 100m resolution before merging everything into Williams Lake wide rasters representing CHM and DEM layers.
+Following report provides three outputs requested by LQ June 24th for 16 new WSVHA rasters with updated masking criteria for Operating Areas differing by Fd and non-Fd filters and an addition of a Quesnel raster for validation purposes including cutblocks with available cruise data. To confirm the requested raster designs, these outputs and the report below were designed according to the following email requests:
 
-![](images/Graphical_Abstract.png)
+1.  "All species, no removal (mask out) of developed blocks (RESULTS, TCC_Blocks): Quesnel Lake only
 
-## Import LiDAR: DEM mosaics
+2.  "All species: All areas except Fd-areas (Gaspard, Hawks, Meldrum)
+
+3.  "All species, standard mask (excluding developed blocks): All areas except Fd-areas (Gaspard, Hawks, Meldrum)
+
+## 1. Quesnel Lake WSVHA for all Fd and non-Fd target areas and developed cutblocks for validation 
+
+### 1.1. Quesnel Lake: Import DEM & CHM
+
+```{r, eval=FALSE}
+filez_be_quesnel = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
+elev_raster_list_quesnel <- lapply(filez_be_quesnel, raster)
+elev_raster_quesnel = do.call(merge, c(elev_raster_list_quesnel, tolerance = 1))
+elev_rast_quesnel = terra::rast(elev_raster_quesnel)
+terra::crs(elev_rast_quesnel) = "epsg:3005"
+elev_rast_quesnel = terra::aggregate(elev_rast_quesnel, fact = 100, fun = mean)
+writeRaster(elev_rast_quesnel, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/elev_raster_100m_quesnel.tif", overwrite=TRUE)
+elev_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/elev_raster_100m_quesnel.tif")
+elev_rast_quesnel = terra::rast(elev_raster_quesnel)
+
+filez_vh_quesnel = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
+lead_htop_raster_list_quesnel <- lapply(filez_vh_quesnel, raster)
+lead_htop_raster_quesnel = do.call(merge, c(lead_htop_raster_list_quesnel, tolerance = 1))
+lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
+terra::crs(lead_htop_rast_quesnel) = "epsg:3005"
+lead_htop_rast_quesnel = terra::aggregate(lead_htop_rast_quesnel, fact = 100, fun = mean)
+writeRaster(lead_htop_rast_quesnel, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/lead_htop_raster_100m_quesnel.tif", overwrite=TRUE)
+lead_htop_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/lead_htop_raster_100m_quesnel.tif")
+lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
+```
+
+### 1.2. Quesnel Lake: Derive Terrain Raster
+
+```{r, eval=FALSE}
+slope_rast_quesnel = terra::terrain(elev_rast_quesnel, v="slope", unit="degrees", neighbors=8)
+aspect_rast_quesnel = terra::terrain(elev_rast_quesnel, v="aspect", unit="degrees", neighbors=8)
+asp_cos_rast_quesnel = cos((aspect_rast_quesnel*pi)/180)
+asp_sin_rast_quesnel = sin((aspect_rast_quesnel*pi)/180)
+lead_htop_rast_quesnel = terra::resample(lead_htop_rast_quesnel, elev_rast_quesnel)
+writeRaster(elev_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/elev_raster_100m_quesnel.tif", overwrite=TRUE)
+writeRaster(slope_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/slope_raster_100m_quesnel.tif", overwrite=TRUE)
+writeRaster(asp_cos_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_cos_raster_100m_quesnel.tif", overwrite=TRUE)
+writeRaster(asp_sin_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_quesnel.tif", overwrite=TRUE)
+writeRaster(lead_htop_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_quesnel.tif", overwrite=TRUE)
+```
+
+### 1.3. Quesnel Lake: Derive Species Filtering Raster
+
+```{r}
+lead_htop_sv_quesnel = as.polygons(lead_htop_rast_quesnel)
+lead_htop_sf_quesnel = sf::st_as_sf(lead_htop_sv_quesnel)
+vri_sf = read_sf("/media/seamus/128GB_WORKD/data/vector/vri/vri_bc_2020_rank1.shp")
+vri_species = vri_sf[c("SPECIES__1", "SPECIES_CD", "SPECIES_PC")]
+vri_species_aoi =  dplyr::filter(vri_species, 
+    SPECIES__1=='PL' | SPECIES__1=='PLI' | SPECIES__1=='FD' | SPECIES__1=='FDI' |
+    SPECIES__1=='SB' | SPECIES__1=='SE' | SPECIES__1=='SW' | SPECIES__1=='SX' | 
+    SPECIES__1=='CW' | SPECIES__1=='HW' | SPECIES__1=='BL' | SPECIES__1=='LW')
+vri_species_allspecies = vri_species_aoi
+vri_species_allspecies$SPECIES__1 = dplyr::recode(vri_species_allspecies$SPECIES__1, 
+  PL = 0, PLI = 0, SB = 1, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2, CW = 3, HW = 4, BL = 5, LW = 6)
+vri_species_allspecies = dplyr::rename(vri_species_allspecies, species_class = SPECIES__1)
+vri_species_allspecies = vri_species_allspecies["species_class"]
+vri_species_allspecies_sf = sf::st_as_sf(vri_species_allspecies)
+vri_species_aoi_ahbau = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_quesnel))
+species_class_rast_quesnel = terra::rasterize(vect(vri_species_aoi_quesnel), lead_htop_rast_quesnel, field = "species_class", touches = TRUE)
+species_class_rast_quesnel = terra::resample(species_class_rast_quesnel, lead_htop_rast_quesnel)
+species_class_raster_quesnel = raster::raster(species_class_rast_quesnel)
+raster::writeRaster(species_class_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_quesnel_allSpecies.tif", overwrite=TRUE)
+species_class_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_quesnel_allSpecies.tif")
+species_class_rast_quesnel = terra::rast(species_class_raster_quesnel)
+```
+
+### 1.4. Quesnel Lake: Derive Mask to Include Estimates of "RESULTS, TCC_Blocks" Areas
+
+```{r, fig.show='hold', out.width="25%", eval=FALSE}
+mask_burn2017 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2017.shp")
+mask_burn2018 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2018.shp")
+mask_burn2021 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2021.shp")
+mask_burn2017 = mask_burn2017["BurnSev"]
+mask_burn2018 = mask_burn2018["BurnSev"]
+mask_burn2021 = mask_burn2021["BurnSev"]
+mask_burn2017 = dplyr::filter(mask_burn2017, BurnSev == 'High')
+mask_burn2018 = dplyr::filter(mask_burn2018, BurnSev == 'High')
+mask_burn2021 = dplyr::filter(mask_burn2021, BurnSev == 'High')
+mask_roads = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Roads.shp")
+mask_roads = sf::st_zm(mask_roads)
+mask_roads = sf::st_buffer(mask_roads, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
+mask_roads_ften = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/FTEN_Roads_All.shp")
+mask_roads_ften = sf::st_zm(mask_roads_ften)
+mask_roads_ften = sf::st_buffer(mask_roads_ften, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
+mask_clearcut = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/RSLT_CCRES_CLEAR.shp")
+mask_blocks = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Blocks_Join.shp")
+
+mask_burn2017_devBlocks_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2017), lead_htop_sf_quesnel)
+mask_burn2018_devBlocks_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2018), lead_htop_sf_quesnel)
+mask_burn2021_devBlocks_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2021), lead_htop_sf_quesnel)
+masks_df_devBlocks_quesnel = full_join(as_tibble(mask_burn2017_devBlocks_quesnel), as_tibble(mask_burn2018_devBlocks_quesnel), as_tibble(mask_burn2021_devBlocks_quesnel), by = "geometry")
+masks_sf_devBlocks_quesnel = st_as_sf(masks_df_devBlocks_quesnel) 
+mask_roads_devBlocks_quesnel = sf::st_intersection(mask_roads, st_make_valid(lead_htop_sf_quesnel))
+mask_roads_ften_devBlocks_quesnel = sf::st_intersection(mask_roads_ften, st_make_valid(lead_htop_sf_quesnel))
+masks_df_devBlocks_quesnel = full_join(as_tibble(masks_sf_devBlocks_quesnel), as_tibble(mask_roads_devBlocks_quesnel), as_tibble(mask_roads_ften_devBlocks_quesnel), by = 'geometry')
+masks_sf_devBlocks_quesnel = st_as_sf(masks_df_devBlocks_quesnel)
+masks_rast_devBlocks_quesnel = rasterize(vect(masks_sf_devBlocks_quesnel), lead_htop_rast_quesnel, touches = TRUE)
+masks_raster_devBlocks_quesnel = raster::raster(masks_rast_devBlocks_quesnel)
+writeRaster(masks_raster_devBlocks_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_devBlocks_quesnel.tif", overwrite=TRUE)
+ggplot(masks_sf_devBlocks_quesnel) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+```
+
+```{r, echo=FALSE}
+masks_raster_devBlocks_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_devBlocks_quesnel.tif")
+masks_rast_devBlocks_quesnel = terra::rast(masks_raster_devBlocks_quesnel)
+masks_sv_devBlocks_quesnel = as.polygons(masks_rast_devBlocks_quesnel)
+masks_sf_devBlocks_quesnel = sf::st_as_sf(masks_sv_devBlocks_quesnel)
+ggplot(masks_sf_devBlocks_quesnel) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+```
+
+### 1.5. Quesnel Lake: Apply Masking
+
+```{r, fig.show='hold', out.width="25%", eval=FALSE}
+# mask by mask
+lead_htop_rast_quesnel = terra::resample(lead_htop_rast_quesnel, elev_rast_quesnel)
+masks_rast_devBlocks_quesnel = terra::resample(masks_rast_devBlocks_quesnel, elev_rast_quesnel)
+species_class_rast_quesnel = terra::resample(species_class_rast_quesnel, elev_rast_quesnel)
+lead_htop_rast_quesnel_masked = mask(lead_htop_rast_quesnel, masks_rast_devBlocks_quesnel, inverse=TRUE)
+elev_rast_quesnel_masked = mask(elev_rast_quesnel, masks_rast_devBlocks_quesnel, inverse=TRUE)
+slope_rast_quesnel_masked = mask(slope_rast_quesnel, masks_rast_devBlocks_quesnel, inverse=TRUE)
+asp_cos_rast_quesnel_masked = mask(asp_cos_rast_quesnel, masks_rast_devBlocks_quesnel, inverse=TRUE)
+asp_sin_rast_quesnel_masked = mask(asp_sin_rast_quesnel, masks_rast_devBlocks_quesnel, inverse=TRUE)
+species_class_rast_quesnel_masked = mask(species_class_rast_quesnel, masks_rast_devBlocks_quesnel, inverse=TRUE)
+# mask by species
+lead_htop_rast_quesnel_masked = mask(lead_htop_rast_quesnel_masked, species_class_rast_quesnel_masked, inverse=FALSE)
+elev_rast_quesnel_masked = mask(elev_rast_quesnel_masked, species_class_rast_quesnel_masked, inverse=FALSE)
+slope_rast_quesnel_masked = mask(slope_rast_quesnel_masked, species_class_rast_quesnel_masked, inverse=FALSE)
+asp_cos_rast_quesnel_masked = mask(asp_cos_rast_quesnel_masked, species_class_rast_quesnel_masked, inverse=FALSE)
+asp_sin_rast_quesnel_masked = mask(asp_sin_rast_quesnel_masked, species_class_rast_quesnel_masked, inverse=FALSE)
+# save outputs
+writeRaster(lead_htop_rast_quesnel_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/lead_htop_rast_quesnel_masked.tif", overwrite=TRUE)
+writeRaster(elev_rast_quesnel_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/elev_rast_quesnel_masked.tif", overwrite=TRUE)
+writeRaster(slope_rast_quesnel_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/slope_rast_quesnel_masked.tif", overwrite=TRUE)
+writeRaster(asp_cos_rast_quesnel_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_cos_rast_quesnel_masked.tif", overwrite=TRUE)
+writeRaster(asp_sin_rast_quesnel_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_sin_rast_quesnel_masked.tif", overwrite=TRUE)
+writeRaster(species_class_rast_quesnel_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/species_class_rast_quesnel_masked.tif", overwrite=TRUE)
+```
+
+### 1.6. Quesnel Lake: Stack and tidy covariates
+
+```{r, fig.show='hold', out.width="50%"}
+# Rename rasters
+names(lead_htop_rast_quesnel_masked) = "lead_htop"
+names(elev_rast_quesnel_masked) = "elev"
+names(slope_rast_quesnel_masked) = "slope"
+names(asp_cos_rast_quesnel_masked) = "asp_cos"
+names(asp_sin_rast_quesnel_masked) = "asp_sin"
+names(species_class_rast_quesnel_masked) = "species_class"
+# transform spatRaster to raster
+lead_htop_raster_quesnel_masked = raster::raster(lead_htop_rast_quesnel_masked)
+elev_raster_quesnel_masked = raster::raster(elev_rast_quesnel_masked)
+slope_raster_quesnel_masked = raster::raster(slope_rast_quesnel_masked)
+asp_cos_raster_quesnel_masked = raster::raster(asp_cos_rast_quesnel_masked)
+asp_sin_raster_quesnel_masked = raster::raster(asp_sin_rast_quesnel_masked)
+species_class_raster_quesnel_masked = raster::raster(species_class_rast_quesnel_masked)
+# stack rasters
+covs_m1_quesnel = raster::stack(
+  lead_htop_raster_quesnel_masked,
+  elev_raster_quesnel_masked, 
+  slope_raster_quesnel_masked,
+  asp_cos_raster_quesnel_masked,
+  asp_sin_raster_quesnel_masked,
+  species_class_raster_quesnel_masked)
+# visualize 
+rasterVis::levelplot(covs_m1_quesnel)
+```
+
+
+### 1.7. Quesnel Lake: FAIB bootstrapping and training/test data splits
+
+```{r, fig.show='hold', out.width="50%", eval=FALSE}
+# Data cleaning
+faib_psp <- read.csv("/media/seamus/128GB_WORKD/EFI-TCC/0_Caret_Predict_to_writeRasterOutput/Data/FAIB_PSP_20211028.csv")
+faib_psp = subset(faib_psp, util == '12.5')
+faib_psp$spc_live1 = as.factor(faib_psp$spc_live1)
+faib_psp =  subset(
+  faib_psp, spc_live1=='PL' | spc_live1=='PLI' | spc_live1=='FD'| spc_live1=='FDI' | 
+    spc_live1=='SB' | spc_live1=='SE' | spc_live1=='SW' | spc_live1=='SX' | 
+    spc_live1=='CW' | spc_live1=='HW' | spc_live1=='BL' | spc_live1=='LW')
+faib_psp$species_class = dplyr::recode(
+  faib_psp$spc_live1, PL = 1, PLI = 1, SB = 2, SE = 2, SX = 2, 
+  FD = 3, FDI = 3, CW = 3, HW = 4, BL = 5, LW = 6)
+faib_psp$asp_cos = cos((faib_psp$aspect * pi) / 180)
+faib_psp$asp_sin = sin((faib_psp$aspect * pi) / 180)
+faib_psp$elev[faib_psp$elev <= 0] = NA
+faib_psp$slope[faib_psp$slope <= 0] = NA
+faib_psp$lead_htop[faib_psp$lead_htop < 2] = NA
+faib_psp$stemsha_L[faib_psp$stemsha_L <= 0] = NA
+faib_psp$wsvha_L[faib_psp$wsvha_L <= 0] = NA
+faib_psp = subset(faib_psp, stemsha_L < 864)
+faib_psp$elev = as.numeric(faib_psp$elev)
+faib_psp$slope = as.numeric(faib_psp$slope)
+faib_psp$asp_cos = as.numeric(faib_psp$asp_cos)
+faib_psp$asp_sin = as.numeric(faib_psp$asp_sin)
+faib_psp$lead_htop = as.numeric(faib_psp$lead_htop)
+faib_psp$species_class = as.numeric(faib_psp$species_class)
+faib_psp$wsvha_L = as.numeric(faib_psp$wsvha_L)
+faib_vri_true_m1_df = faib_psp[c("elev", "slope", "asp_cos", "asp_sin", "lead_htop", "species_class", "wsvha_L")] 
+faib_vri_true_m1_df = na.omit(faib_vri_true_m1_df)
+# Bootstrapping: Weighting done by full 16-area raster payload
+lead_htop_raster_all_masked = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/lead_htop_rast_fullMask_allAreas_masked.tif")
+lead_htop_df_all = as.data.frame(rasterToPoints(lead_htop_raster_all_masked))
+dens.fun = approxfun(density(lead_htop_df_all$lead_htop_rast_fullMask_allAreas_masked, adjust=0.8))
+B = 1000
+n = 4
+faib_vri_true_m1_df_boot = dplyr::sample_n(faib_vri_true_m1_df, B * n, weight_by = dens.fun(faib_vri_true_m1_df$lead_htop), replace = TRUE)
+faib_vri_true_m1_df_boot = na.omit(faib_vri_true_m1_df_boot)
+truehist(faib_vri_true_m1_df$lead_htop, main="CHM (un-Bootstrapped FAIB)")
+truehist(faib_vri_true_m1_df_boot$lead_htop, main="CHM (Bootstrapped FAIB)")
+
+faib_vri_true_m1_df_boot_split = createDataPartition(faib_vri_true_m1_df_boot$wsvha_L, p=0.80, list=F)
+faib_vri_true_m1_df_split = createDataPartition(faib_vri_true_m1_df$wsvha_L, p=0.80, list=F)
+
+train_m1_boot = faib_vri_true_m1_df_boot[faib_vri_true_m1_df_boot_split, ]
+test_m1_boot = faib_vri_true_m1_df_boot[-faib_vri_true_m1_df_boot_split, ]
+train_m1 = faib_vri_true_m1_df[faib_vri_true_m1_df_split, ]
+test_m1 = faib_vri_true_m1_df[-faib_vri_true_m1_df_split, ]
+
+X_train_m1_boot = train_m1_boot[,-7]
+y_train_m1_boot = train_m1_boot[, 7]
+X_test_m1_boot = test_m1_boot[,-7]
+y_test_m1_boot = test_m1_boot[, 7]
+X_m1_boot = faib_vri_true_m1_df_boot[,-7]
+y_m1_boot = faib_vri_true_m1_df_boot[, 7]
+
+X_train_m1 = train_m1[,-7]
+y_train_m1 = train_m1[, 7]
+X_test_m1 = test_m1[,-7]
+y_test_m1 = test_m1[, 7]
+X_m1 = faib_vri_true_m1_df[,-7]
+y_m1 = faib_vri_true_m1_df[, 7]
+```
+
+### Quesnel Lake: Modelling WSVHA Estimates with Random Forest Regression 
+
+```{r, fig.show='hold', out.width="50%", eval=FALSE}
+tuneResult_rf_m1_full <- tune.randomForest(
+  X_m1_boot, y_m1_boot,
+  mtry = c(2:10), ntree = 50,
+  tunecontrol = tune.control(sampling = "cross", cross = 10),
+  preProcess = c('YeoJohnson', 'scale', 'center', 'corr'))
+
+tuneResult_rf_m1_train <- tune.randomForest(
+  X_train_m1_boot, y_train_m1_boot, 
+  mtry = c(2:10), ntree = 50,
+  tunecontrol = tune.control(sampling = "cross", cross = 10), 
+  preProcess = c('YeoJohnson', 'scale', 'center', 'corr'))
+tunedModel_rf_m1_full <- tuneResult_rf_m1_full$best.model
+tunedModel_rf_m1_train <- tuneResult_rf_m1_train$best.model
+tunedModel_rf_m1 = predict(tunedModel_rf_m1_full, newdata=faib_vri_true_m1_df, type = "response")
+tunedModel_rf_m1_test = predict(tunedModel_rf_m1_train, newdata=test_m1, type = "response")
+save(tunedModel_rf_m1_full, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_randomForest_bootstrapped_demBased_allAreas.RData")
+tuneResult_rf_m1_full
+R2(tunedModel_rf_m1, faib_vri_true_m1_df$wsvha_L)
+MAE(tunedModel_rf_m1, faib_vri_true_m1_df$wsvha_L)
+RMSE(tunedModel_rf_m1, faib_vri_true_m1_df$wsvha_L)
+MAE(tunedModel_rf_m1_test, test_m1$wsvha_L)
+RMSE(tunedModel_rf_m1_test, test_m1$wsvha_L)
+wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks <- raster::predict(covs_m1_quesnel, tunedModel_rf_m1_full)
+wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks$layer[wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks$layer <= 0] = 0
+writeRaster(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks, overwrite=TRUE,
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks.tif")
+plot(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks, main="Quesnel WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000)
+hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks, main="Quesnel WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000) 
+```
+
+```{r, fig.show='hold', out.width="50%", echo=FALSE}
+wsvha_model1_randomForest_bootstrapped_demBased_100m_allAreas =
+  raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks.tif")
+plot(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks, main="Quesnel WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000)
+hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_quesnelANDdevBlocks, main="Quesnel WSVHA: Random Forest", cex.main=0.8, maxpixels=22000000) 
+```
 
 ```{r, eval=FALSE}
 filez_be_gaspard = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
@@ -57,14 +333,6 @@ elev_rast_gaspard = terra::rast(elev_raster_gaspard)
 terra::crs(elev_rast_gaspard) = "epsg:3005"
 elev_rast_gaspard = terra::aggregate(elev_rast_gaspard, fact = 100, fun = mean)
 writeRaster(elev_rast_gaspard, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/elev_raster_100m_gaspard.tif", overwrite=TRUE)
-
-filez_be_quesnel = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
-elev_raster_list_quesnel <- lapply(filez_be_quesnel, raster)
-elev_raster_quesnel = do.call(merge, c(elev_raster_list_quesnel, tolerance = 1))
-elev_rast_quesnel = terra::rast(elev_raster_quesnel)
-terra::crs(elev_rast_quesnel) = "epsg:3005"
-elev_rast_quesnel = terra::aggregate(elev_rast_quesnel, fact = 100, fun = mean)
-writeRaster(elev_rast_quesnel, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/elev_raster_100m_quesnel.tif", overwrite=TRUE)
 
 filez_be_ahbau = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/ahbau/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
 elev_raster_list_ahbau <- lapply(filez_be_ahbau, raster)
@@ -169,29 +437,38 @@ terra::crs(elev_rast_piltz) = "epsg:3005"
 elev_rast_piltz = terra::aggregate(elev_rast_piltz, fact = 100, fun = mean)
 writeRaster(elev_rast_piltz, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/piltz/elev_raster_100m_piltz.tif", overwrite=TRUE)
 
-filez_be_punky_clisbako = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') 
-elev_raster_list_punky_clisbako = lapply(filez_be_punky_clisbako, raster)
+filez_be_punky_clisbako = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/BareEarth", full.names = T, all.files = FALSE, pattern = '.tif$') elev_raster_list_punky_clisbako = lapply(filez_be_punky_clisbako, raster)
 elev_raster_punky_clisbako = do.call(merge, c(elev_raster_list_punky_clisbako, tolerance = 1))
 elev_rast_punky_clisbako = terra::rast(elev_raster_punky_clisbako) 
 terra::crs(elev_rast_punky_clisbako) = "epsg:3005"
 elev_rast_punky_clisbako = terra::aggregate(elev_rast_punky_clisbako, fact = 100, fun = mean)
 writeRaster(elev_rast_punky_clisbako, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/elev_raster_100m_punky_clisbako.tif", overwrite=TRUE)
 
-elev_raster_list = list(
-  elev_raster_quesnel, elev_raster_gaspard, 
+elev_raster_allSpecies_list = list(
   elev_raster_ahbau, #elev_raster_bells, 
   elev_raster_big_valley, elev_raster_cariboo_lake, 
   elev_raster_charleson_marvincreek, elev_raster_dash,
   elev_raster_hawks_creek, elev_raster_little_river,
   elev_raster_little_swift, elev_raster_mcintosh,
-  elev_raster_meldrum, elev_raster_phillips_anahim_lake,
-  elev_raster_piltz, elev_raster_punky_clisbako)
-elev_raster_all = do.call(merge, c(elev_raster_list, tolerance = 1))
-elev_rast_all = terra::rast(elev_raster_all)
-writeRaster(elev_rast_all, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_allAreas.tif", overwrite=TRUE)
+  elev_raster_phillips_anahim_lake, elev_raster_piltz, 
+  elev_raster_punky_clisbako)
+
+elev_raster_nonFd_list = list(
+  elev_raster_gaspard, elev_raster_hawks_creek, elev_raster_meldrum)
+
+elev_raster_allSpeciesAreas = do.call(merge, c(elev_raster_allSpecies_list, tolerance = 1))
+elev_rast_allSpeciesAreas = terra::rast(elev_raster_allSpeciesAreas)
+writeRaster(elev_raster_allSpeciesAreas, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_allSpeciesAreas.tif", overwrite=TRUE)
+
+elev_raster_nonFdAreas = do.call(merge, c(elev_raster_nonFd_list, tolerance = 1))
+elev_rast_nonFdAreas = terra::rast(elev_raster_nonFdAreas)
+writeRaster(elev_raster_nonFdAreas, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_nonFdAreas.tif", overwrite=TRUE)
 ```
 
 ```{r, fig.show='hold', out.width="25%"}
+elev_raster_allSpeciesAreas = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_allSpeciesAreas.tif")
+elev_raster_nonFdAreas = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_nonFdAreas.tif")
+elev_raster_all = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_allAreas.tif")
 elev_raster_ahbau = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/ahbau/elev_raster_100m_ahbau.tif")
 # elev_raster_bells = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/elev_raster_100m_bells.tif") #overlaps with Big Valley
 elev_raster_big_valley = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/elev_raster_100m_big_valley.tif")
@@ -209,6 +486,9 @@ elev_raster_piltz = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics
 elev_raster_punky_clisbako = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/elev_raster_100m_punky_clisbako.tif")
 elev_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/elev_raster_100m_quesnel.tif")
 
+elev_rast_allSpeciesAreas = terra::rast(elev_raster_allSpeciesAreas)
+elev_rast_nonFdAreas = terra::rast(elev_raster_nonFdAreas)
+elev_rast_all = terra::rast(elev_raster_all)
 elev_rast_ahbau = terra::rast(elev_raster_ahbau)
 # elev_rast_bells = terra::rast(elev_raster_bells) # extent overlaps with Big Valley
 elev_rast_big_valley = terra::rast(elev_raster_big_valley) 
@@ -244,6 +524,7 @@ terra::plot(elev_rast_piltz, main = 'Piltz DEM (100m res)')
 terra::plot(elev_rast_punky_clisbako, main = 'Punky Clisbako DEM (100m res)')
 ```
 
+
 ## Import LiDAR: CHM mosaics
 
 ```{r, eval=FALSE}
@@ -254,14 +535,6 @@ lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
 terra::crs(lead_htop_rast_gaspard) = "epsg:3005"
 lead_htop_rast_gaspard = terra::aggregate(lead_htop_rast_gaspard, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_gaspard, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/lead_htop_raster_100m_gaspard.tif", overwrite=TRUE)
-
-filez_vh_quesnel = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
-lead_htop_raster_list_quesnel <- lapply(filez_vh_quesnel, raster)
-lead_htop_raster_quesnel = do.call(merge, c(lead_htop_raster_list_quesnel, tolerance = 1))
-lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
-terra::crs(lead_htop_rast_quesnel) = "epsg:3005"
-lead_htop_rast_quesnel = terra::aggregate(lead_htop_rast_quesnel, fact = 100, fun = mean)
-writeRaster(lead_htop_rast_quesnel, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/lead_htop_raster_100m_quesnel.tif", overwrite=TRUE)
 
 filez_vh_ahbau = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/ahbau/VegHt", full.names = T, all.files = FALSE, pattern = '.tif$') 
 lead_htop_raster_list_ahbau <- lapply(filez_vh_ahbau, raster)
@@ -363,7 +636,8 @@ filez_vh_piltz = list.files("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/piltz/
 lead_htop_raster_list_piltz <- lapply(filez_vh_piltz, raster)
 lead_htop_raster_piltz = do.call(merge, c(lead_htop_raster_list_piltz, tolerance = 1))
 lead_htop_rast_piltz = terra::rast(lead_htop_raster_piltz)
-terra::crs(lead_htop_rast_piltz) = "epsg:3005"extent_all_sf
+terra::crs(lead_htop_rast_piltz) = "epsg:3005"
+extent_all_sf
 lead_htop_rast_piltz = terra::aggregate(lead_htop_rast_piltz, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_piltz, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/piltz/lead_htop_raster_100m_piltz.tif", overwrite=TRUE)
 
@@ -375,7 +649,7 @@ terra::crs(lead_htop_rast_punky_clisbako) = "epsg:3005"
 lead_htop_rast_punky_clisbako = terra::aggregate(lead_htop_rast_punky_clisbako, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_punky_clisbako, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/lead_htop_raster_100m_punky_clisbako.tif", overwrite=TRUE)
 
-lead_htop_raster_list = list(
+lead_htop_raster_allSpecies_list = list(
   lead_htop_raster_quesnel, lead_htop_raster_gaspard, 
   lead_htop_raster_ahbau, #lead_htop_raster_bells, 
   lead_htop_raster_big_valley, lead_htop_raster_cariboo_lake, 
@@ -447,21 +721,22 @@ lead_htop_rast_all = terra::rast("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/l
 lead_htop_raster_all = raster::raster(lead_htop_rast_all)
 terra::plot(lead_htop_rast_all, main="CHM Merged Raster of 15 Operating Areas (100m res)")
 ```
+
 ##Import LiDAR Extents: Compare derived and approved polygons
 
 ```{r, fig.show='hold', out.width='33%'}
-elev_rast_all = terra::rast("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_allAreas.tif")
-terra::plot(elev_rast_all, main="DEM Merged Raster for 15 Operating Areas (100m res)")
-extent_elev_sv = as.polygons(elev_rast_all)
-extent_elev_sf = sf::st_as_sf(extent_elev_sv)
-ggplot(extent_elev_sf) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+#elev_rast_all = terra::rast("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_allAreas.tif")
+#terra::plot(elev_rast_all, main="DEM Merged Raster for 15 Operating Areas (100m res)")
+#extent_elev_sv = as.polygons(elev_rast_all)
+#extent_elev_sf = sf::st_as_sf(extent_elev_sv)
+#ggplot(extent_elev_sf) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
 extent_sf = read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/Lidar_Extent_Cleaned.shp")
 extent_sfz = st_zm(extent_sf) # drop z dimensions for plotting purposes
 extent_sfz_3005 = sf::st_transform(extent_sfz, 3005)
 ggplot(extent_sfz) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
 ```
 
-## Derive: Terrain rasters
+## Derive Terrain rasters
 
 ```{r, eval=FALSE}
 slope_rast_all = terra::terrain(elev_rast_all, v="slope", unit="degrees", neighbors=8)
@@ -552,20 +827,40 @@ lead_htop_rast_meldrum = terra::resample(lead_htop_rast_meldrum, elev_rast_meldr
 lead_htop_rast_phillips_anahim_lake = terra::resample(lead_htop_rast_phillips_anahim_lake, elev_rast_phillips_anahim_lake)
 lead_htop_rast_piltz = terra::resample(lead_htop_rast_piltz, elev_rast_piltz)
 lead_htop_rast_punky_clisbako = terra::resample(lead_htop_rast_punky_clisbako, elev_rast_punky_clisbako)
+lead_htop_rast_quesnel = terra::resample(lead_htop_rast_quesnel, elev_rast_quesnel)
 
 writeRaster(elev_rast_all, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/elev_raster_100m_all.tif", overwrite=TRUE)
 writeRaster(slope_rast_all, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/slope_raster_100m_all.tif", overwrite=TRUE)
 writeRaster(asp_cos_rast_all, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_cos_raster_100m_all.tif", overwrite=TRUE)
 writeRaster(asp_sin_rast_all, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_all.tif", overwrite=TRUE)
+writeRaster(lead_htop_rast_all, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_all.tif", overwrite=TRUE)
 
-writeRaster(elev_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/elev_raster_100m_.tif", overwrite=TRUE)
-writeRaster(slope_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/slope_raster_100m_all.tif", overwrite=TRUE)
-writeRaster(asp_cos_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_cos_raster_100m_all.tif", overwrite=TRUE)
-writeRaster(asp_sin_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_all.tif", overwrite=TRUE)
-writeRaster(lead_htop_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_all.tif", overwrite=TRUE)
+writeRaster(elev_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/elev_raster_100m_quesnel.tif", overwrite=TRUE)
+writeRaster(slope_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/slope_raster_100m_quesnel.tif", overwrite=TRUE)
+writeRaster(asp_cos_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_cos_raster_100m_quesnel.tif", overwrite=TRUE)
+writeRaster(asp_sin_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_quesnel.tif", overwrite=TRUE)
+writeRaster(lead_htop_rast_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_quesnel.tif", overwrite=TRUE)
+
+writeRaster(elev_rast_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/elev_raster_100m_gaspard.tif", overwrite=TRUE)
+writeRaster(slope_rast_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/slope_raster_100m_gaspard.tif", overwrite=TRUE)
+writeRaster(asp_cos_rast_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_cos_raster_100m_gaspard.tif", overwrite=TRUE)
+writeRaster(asp_sin_rast_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_gaspard.tif", overwrite=TRUE)
+writeRaster(lead_htop_rast_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_gaspard.tif", overwrite=TRUE)
+
+writeRaster(elev_rast_hawks_creek, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/elev_raster_100m_hawks_creek.tif", overwrite=TRUE)
+writeRaster(slope_rast_hawks_creek, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/slope_raster_100m_hawks_creek.tif", overwrite=TRUE)
+writeRaster(asp_cos_rast_hawks_creek, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_cos_raster_100m_hawks_creek.tif", overwrite=TRUE)
+writeRaster(asp_sin_rast_hawks_creek, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_hawks_creek.tif", overwrite=TRUE)
+writeRaster(lead_htop_rast_hawks_creek, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_hawks_creek.tif", overwrite=TRUE)
+
+writeRaster(elev_rast_meldrum, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/elev_raster_100m_meldrum.tif", overwrite=TRUE)
+writeRaster(slope_rast_meldrum, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/slope_raster_100m_meldrum.tif", overwrite=TRUE)
+writeRaster(asp_cos_rast_meldrum, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_cos_raster_100m_meldrum.tif", overwrite=TRUE)
+writeRaster(asp_sin_rast_meldrum, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_meldrum.tif", overwrite=TRUE)
+writeRaster(lead_htop_rast_meldrum, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_meldrum.tif", overwrite=TRUE)
 ```
 
-## Derive Species: VRI rasterization for Fd/non-Fd operating areas
+## Derive Species Rasters: Fd/non-Fd operating areas
 
 ```{r, eval=FALSE}
 # Fir Area Extents:
@@ -600,6 +895,8 @@ lead_htop_sv_piltz = as.polygons(lead_htop_rast_piltz)
 lead_htop_sf_piltz = sf::st_as_sf(lead_htop_sv_piltz)
 lead_htop_sv_punky_clisbako = as.polygons(lead_htop_rast_punky_clisbako)
 lead_htop_sf_punky_clisbako = sf::st_as_sf(lead_htop_sv_punky_clisbako)
+lead_htop_sv_quesnel = as.polygons(lead_htop_rast_quesnel)
+lead_htop_sf_quesnel = sf::st_as_sf(lead_htop_sv_quesnel)
 
 vri_sf = read_sf("/media/seamus/128GB_WORKD/data/vector/vri/vri_bc_2020_rank1.shp")
 vri_species = vri_sf[c("SPECIES__1", "SPECIES_CD", "SPECIES_PC")]
@@ -608,59 +905,173 @@ vri_species_aoi =  dplyr::filter(vri_species,
     SPECIES__1=='SB' | SPECIES__1=='SE' | SPECIES__1=='SW' | SPECIES__1=='SX' | 
     SPECIES__1=='CW' | SPECIES__1=='HW' | SPECIES__1=='BL' | SPECIES__1=='LW')
 
-# Fir Area Filtering
-vri_species_aoi_gaspard = vri_species_aoi[!(
+# nonFd filter (Gaspard, Hawks Creek, Meldrum)
+vri_species_nonFd = vri_species_aoi[!(
   vri_species_aoi$SPECIES__1 == 'FD' & vri_species_aoi$SPECIES_PC >= 50 | 
     vri_species_aoi$SPECIES__1 == 'FDI' & vri_species_aoi$SPECIES_PC >=50),]
-vri_species_aoi_gaspard$SPECIES__1 = dplyr::recode(vri_species_aoi_gaspard$SPECIES__1, 
+vri_species_nonFd$SPECIES__1 = dplyr::recode(vri_species_nonFd$SPECIES__1, 
   PL = 0, PLI = 0, SB = 1, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2, CW = 3, HW = 4, BL = 5, LW = 6)
-vri_species_aoi_gaspard = dplyr::rename(vri_species_aoi_gaspard, species_class = SPECIES__1)
-vri_species_aoi_gaspard = vri_species_aoi_gaspard["species_class"]
-vri_species_aoi_sf_gaspard = sf::st_as_sf(vri_species_aoi_gaspard)
-
-vri_species_aoi_quesnel = vri_species_aoi
-vri_species_aoi_quesnel$SPECIES__1 = dplyr::recode(vri_species_aoi$SPECIES__1, PL = 0, PLI = 0, SB = 1, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2, CW = 3, HW = 4, BL = 5, LW = 6)
-vri_species_aoi_quesnel = dplyr::rename(vri_species_aoi_quesnel, species_class = SPECIES__1)
-vri_species_aoi_quesnel = vri_species_aoi_quesnel["species_class"]
-vri_species_aoi_sf_quesnel = sf::st_as_sf(vri_species_aoi_quesnel)
-
-vri_species_aoi_quesnel = st_intersection(vri_species_aoi_sf_quesnel, st_make_valid(lead_htop_sf_quesnel))
-vri_species_aoi_gaspard = st_intersection(vri_species_aoi_sf_gaspard, st_make_valid(lead_htop_sf_gaspard))
-species_class_rast_quesnel = terra::rasterize(vect(vri_species_aoi_quesnel), lead_htop_rast_quesnel, field = "species_class", touches = TRUE)
-species_class_rast_gaspard = terra::rasterize(vect(vri_species_aoi_gaspard), lead_htop_rast_gaspard, field = "species_class", touches = TRUE)
-species_class_rast_quesnel = terra::resample(species_class_rast_quesnel, lead_htop_rast_quesnel)
-species_class_rast_gaspard = terra::resample(species_class_rast_gaspard, lead_htop_rast_gaspard)
-species_class_raster_quesnel = raster::raster(species_class_rast_quesnel)
-species_class_raster_gaspard = raster::raster(species_class_rast_gaspard)
-raster::writeRaster(species_class_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/unmasked-covariates/species_class_raster_100m_quesnel.tif", overwrite=TRUE)
-raster::writeRaster(species_class_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/unmasked-covariates/species_class_raster_100m_gaspard.tif", overwrite=TRUE)
-```
-
-## Import Species: VRI Rasterization (With Non-Fd filter)
-
-```{r, eval=FALSE}
-vri_sf = read_sf("/media/seamus/128GB_WORKD/data/vector/vri/vri_bc_2020_rank1.shp")
-vri_species = vri_sf[c("SPECIES__1", "SPECIES_CD", "SPECIES_PC")]
-vri_species =  dplyr::filter(
-  vri_species, SPECIES__1=='PL' | SPECIES__1=='PLI' | SPECIES__1=='FD' | SPECIES__1=='FDI' |
-    SPECIES__1=='SB' | SPECIES__1=='SE' | SPECIES__1=='SW' | SPECIES__1=='SX' | 
-    SPECIES__1=='CW' | SPECIES__1=='HW' | SPECIES__1=='BL' | SPECIES__1=='LW')
-vri_species_nonFd = vri_species[!(
-  vri_species$SPECIES__1 == 'FD' & vri_species$SPECIES_PC >= 50 | vri_species$SPECIES__1 == 'FDI' & vri_species$SPECIES_PC >=50),]
-vri_species_nonFd$SPECIES__1 = dplyr::recode(
-  vri_species_nonFd$SPECIES__1, PL = 0, PLI = 0, SB = 1, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2, CW = 3, HW = 4, BL = 5, LW = 6)
 vri_species_nonFd = dplyr::rename(vri_species_nonFd, species_class = SPECIES__1)
 vri_species_nonFd = vri_species_nonFd["species_class"]
-vri_species_nonFd = sf::st_as_sf(vri_species_nonFd)
+vri_species_nonFd_sf = sf::st_as_sf(vri_species_nonFd)
+vri_species_nonFd_gaspard = st_intersection(vri_species_nonFd_sf, st_make_valid(lead_htop_sf_gaspard))
+vri_species_nonFd_hawks_creek = st_intersection(vri_species_nonFd_sf, st_make_valid(lead_htop_sf_hawks_creek))
+vri_species_nonFd_meldrum = st_intersection(vri_species_nonFd_sf, st_make_valid(lead_htop_sf_meldrum))
+species_class_rast_gaspard = terra::rasterize(vect(vri_species_nonFd_gaspard), lead_htop_rast_gaspard, field = "species_class", touches = TRUE)
+species_class_rast_hawks_creek = terra::rasterize(vect(vri_species_nonFd_hawks_creek), lead_htop_rast_hawks_creek, field = "species_class", touches = TRUE)
+species_class_rast_meldrum = terra::rasterize(vect(vri_species_nonFd_meldrum), lead_htop_rast_meldrum, field = "species_class", touches = TRUE)
+species_class_rast_gaspard = terra::resample(species_class_rast_gaspard, lead_htop_rast_gaspard)
+species_class_rast_hawks_creek = terra::resample(species_class_rast_hawks_creek, lead_htop_rast_hawks_creek)
+species_class_rast_meldrum = terra::resample(species_class_rast_meldrum, lead_htop_rast_meldrum)
+species_class_raster_gaspard = raster::raster(species_class_rast_gaspard)
+species_class_raster_hawks_creek = raster::raster(species_class_rast_hawks_creek)
+species_class_raster_meldrum = raster::raster(species_class_rast_meldrum)
+species_class_raster_nonFdAreas_list = list(species_class_raster_gaspard, species_class_raster_hawks_creek, species_class_raster_meldrum)
+species_class_raster_nonFdAreas = do.call(merge, c(species_class_raster_nonFdAreas_list, tolerance = 1))
+species_class_rast_nonFdAreas = terra::rast(species_class_raster_nonFdAreas)
+raster::writeRaster(species_class_raster_nonFdAreas, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/species_class_raster_100m_nonFdAreas.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_gaspard, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_gaspard_nonFd.tif", overwrite=TRUE)
+raster::writeRaster(species_class_rast_hawks_creek, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_hawks_creek_nonFd.tif", overwrite=TRUE)
+raster::writeRaster(species_class_rast_meldrum, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_meldrum_nonFd.tif", overwrite=TRUE)
 
-vri_species_nonFd = st_intersection(vri_species_nonFd, st_make_valid(extent_sfz_3005))
-species_class_rast_all = terra::rasterize(vect(vri_species_nonFd), elev_rast_all, field = "species_class", touches = TRUE)
-species_class_rast_all = terra::resample(species_class_rast_all, elev_rast_all)
-species_class_raster_all = raster::raster(species_class_rast_all)
-raster::writeRaster(species_class_raster_all, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/species_class_raster_100m_allAreas.tif", overwrite=TRUE)
+# all-Species filter
+lead_htop_sv_quesnel = as.polygons(lead_htop_rast_quesnel)
+lead_htop_sf_quesnel = sf::st_as_sf(lead_htop_sv_quesnel)
+vri_sf = read_sf("/media/seamus/128GB_WORKD/data/vector/vri/vri_bc_2020_rank1.shp")
+vri_species = vri_sf[c("SPECIES__1", "SPECIES_CD", "SPECIES_PC")]
+vri_species_aoi =  dplyr::filter(vri_species, 
+    SPECIES__1=='PL' | SPECIES__1=='PLI' | SPECIES__1=='FD' | SPECIES__1=='FDI' |
+    SPECIES__1=='SB' | SPECIES__1=='SE' | SPECIES__1=='SW' | SPECIES__1=='SX' | 
+    SPECIES__1=='CW' | SPECIES__1=='HW' | SPECIES__1=='BL' | SPECIES__1=='LW')
+vri_species_allspecies = vri_species_aoi
+vri_species_allspecies$SPECIES__1 = dplyr::recode(vri_species_allspecies$SPECIES__1, 
+  PL = 0, PLI = 0, SB = 1, SE = 1, SW = 1, SX = 1, FD = 2, FDI = 2, CW = 3, HW = 4, BL = 5, LW = 6)
+vri_species_allspecies = dplyr::rename(vri_species_allspecies, species_class = SPECIES__1)
+vri_species_allspecies = vri_species_allspecies["species_class"]
+vri_species_allspecies_sf = sf::st_as_sf(vri_species_allspecies)
+vri_species_aoi_ahbau = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_ahbau))
+#vri_species_aoi_bells = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_bells))
+vri_species_aoi_big_valley = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_big_valley))
+vri_species_aoi_cariboo_lake = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_cariboo_lake))
+vri_species_aoi_charleson_marvincreek = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_charleson_marvincreek))
+vri_species_aoi_dash = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_dash))
+vri_species_aoi_little_river = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_little_river))
+vri_species_aoi_little_swift = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_little_swift))
+vri_species_aoi_mcintosh = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_mcintosh))
+vri_species_aoi_phillips_anahim_lake = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_phillips_anahim_lake))
+vri_species_aoi_piltz = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_piltz))
+vri_species_aoi_punky_clisbako = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_punky_clisbako))
+vri_species_aoi_quesnel = st_intersection(vri_species_allspecies_sf, st_make_valid(lead_htop_sf_quesnel))
+species_class_rast_ahbau = terra::rasterize(vect(vri_species_aoi_ahbau), lead_htop_rast_ahbau, field = "species_class", touches = TRUE)
+#species_class_rast_bells = terra::rasterize(vect(vri_species_aoi_bells), lead_htop_rast_bells, field = "species_class", touches = TRUE)
+species_class_rast_big_valley = terra::rasterize(vect(vri_species_aoi_big_valley), lead_htop_rast_big_valley, field = "species_class", touches = TRUE)
+species_class_rast_cariboo_lake = terra::rasterize(vect(vri_species_aoi_cariboo_lake), lead_htop_rast_cariboo_lake, field = "species_class", touches = TRUE)
+species_class_rast_charleson_marvincreek = terra::rasterize(vect(vri_species_aoi_charleson_marvincreek), lead_htop_rast_charleson_marvincreek, field = "species_class", touches = TRUE)
+species_class_rast_dash = terra::rasterize(vect(vri_species_aoi_dash), lead_htop_rast_dash, field = "species_class", touches = TRUE)
+species_class_rast_little_river = terra::rasterize(vect(vri_species_aoi_little_river), lead_htop_rast_little_river, field = "species_class", touches = TRUE)
+species_class_rast_little_swift = terra::rasterize(vect(vri_species_aoi_little_swift), lead_htop_rast_little_swift, field = "species_class", touches = TRUE)
+species_class_rast_mcintosh = terra::rasterize(vect(vri_species_aoi_mcintosh), lead_htop_rast_mcintosh, field = "species_class", touches = TRUE)
+species_class_rast_phillips_anahim_lake = terra::rasterize(vect(vri_species_aoi_phillips_anahim_lake), lead_htop_rast_phillips_anahim_lake, field = "species_class", touches = TRUE)
+species_class_rast_piltz = terra::rasterize(vect(vri_species_aoi_piltz), lead_htop_rast_piltz, field = "species_class", touches = TRUE)
+species_class_rast_punky_clisbako = terra::rasterize(vect(vri_species_aoi_punky_clisbako), lead_htop_rast_punky_clisbako, field = "species_class", touches = TRUE)
+species_class_rast_quesnel = terra::rasterize(vect(vri_species_aoi_quesnel), lead_htop_rast_quesnel, field = "species_class", touches = TRUE)
+
+species_class_rast_ahbau = terra::resample(species_class_rast_ahbau, lead_htop_rast_ahbau)
+#species_class_rast_bells = terra::resample(species_class_rast_bells, lead_htop_rast_bells)
+species_class_rast_big_valley = terra::resample(species_class_rast_big_valley, lead_htop_rast_big_valley)
+species_class_rast_cariboo_lake = terra::resample(species_class_rast_cariboo_lake, lead_htop_rast_cariboo_lake)
+species_class_rast_charleson_marvincreek = terra::resample(species_class_rast_charleson_marvincreek, lead_htop_rast_charleson_marvincreek)
+species_class_rast_dash = terra::resample(species_class_rast_dash, lead_htop_rast_dash)
+species_class_rast_little_river = terra::resample(species_class_rast_little_river, lead_htop_rast_little_river)
+species_class_rast_little_swift = terra::resample(species_class_rast_little_swift, lead_htop_rast_little_swift)
+species_class_rast_mcintosh = terra::resample(species_class_rast_mcintosh, lead_htop_rast_mcintosh)
+species_class_rast_phillips_anahim_lake = terra::resample(species_class_rast_phillips_anahim_lake, lead_htop_rast_phillips_anahim_lake)
+species_class_rast_piltz = terra::resample(species_class_rast_piltz, lead_htop_rast_piltz)
+species_class_rast_punky_clisbako = terra::resample(species_class_rast_punky_clisbako, lead_htop_rast_punky_clisbako)
+species_class_rast_quesnel = terra::resample(species_class_rast_quesnel, lead_htop_rast_quesnel)
+
+species_class_raster_ahbau = raster::raster(species_class_rast_ahbau)
+#species_class_raster_bells = raster::raster(species_class_rast_bells)
+species_class_raster_big_valley = raster::raster(species_class_rast_big_valley)
+species_class_raster_cariboo_lake = raster::raster(species_class_rast_cariboo_lake)
+species_class_raster_charleson_marvincreek = raster::raster(species_class_rast_charleson_marvincreek)
+species_class_raster_dash = raster::raster(species_class_rast_dash)
+species_class_raster_little_river = raster::raster(species_class_rast_little_river)
+species_class_raster_little_swift = raster::raster(species_class_rast_little_swift)
+species_class_raster_mcintosh = raster::raster(species_class_rast_mcintosh)
+species_class_raster_phillips_anahim_lake = raster::raster(species_class_rast_phillips_anahim_lake)
+species_class_raster_piltz = raster::raster(species_class_rast_piltz)
+species_class_raster_punky_clisbako = raster::raster(species_class_rast_punky_clisbako)
+species_class_raster_quesnel = raster::raster(species_class_rast_quesnel)
+
+species_class_raster_allspecies_list = list(
+  species_class_raster_ahbau, #elev_raster_bells, 
+  species_class_raster_big_valley, species_class_raster_cariboo_lake, 
+  species_class_raster_charleson_marvincreek, species_class_raster_dash,
+  species_class_raster_little_river, species_class_raster_little_swift,
+  species_class_raster_mcintosh, species_class_raster_phillips_anahim_lake, species_class_raster_piltz,
+  species_class_raster_punky_clisbako, species_class_raster_quesnel)
+species_class_raster_allspecies = do.call(merge, c(species_class_raster_allspecies_list, tolerance = 1))
+species_class_rast_allspecies = terra::rast(species_class_raster_allspecies)
+
+raster::writeRaster(species_class_raster_allspecies, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/species_class_raster_100m_allSpeciesAreas.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_ahbau, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_ahbau_allSpecies.tif", overwrite=TRUE)
+#raster::writeRaster(species_class_raster_bells, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_bells_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_big_valley, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_big_valley_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_cariboo_lake, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_cariboo_lake_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_charleson_marvincreek, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_charleson_marvincreek_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_dash, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_dash_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_little_river, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_little_river_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_little_swift, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_little_swift_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_mcintosh, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_mcintosh_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_phillips_anahim_lake, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_phillips_anahim_lake_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_piltz, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_piltz_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_punky_clisbako, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_punky_clisbako_allSpecies.tif", overwrite=TRUE)
+raster::writeRaster(species_class_raster_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_quesnel_allSpecies.tif", overwrite=TRUE)
 ```
 
-## Import Mask: Edit to include/exclude cruised plots
+```{r, eval=FALSE, echo=FALSE}
+# Areas including all Fir and non-Fir
+species_class_raster_allSpeciesAreas = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/species_class_raster_100m_allSpeciesAreas.tif")
+species_class_raster_ahbau = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_ahbau_allSpecies.tif")
+#species_class_raster_bells = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_bells_allSpecies.tif")
+species_class_raster_big_valley = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_big_valley_allSpecies.tif")
+species_class_raster_cariboo_lake = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_cariboo_lake_allSpecies.tif")
+species_class_raster_charleson_marvincreek = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_charleson_marvincreek_allSpecies.tif")
+species_class_raster_dash = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_dash_allSpecies.tif")
+species_class_raster_little_river = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_little_river_allSpecies.tif")
+species_class_raster_little_swift = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_little_swift_allSpecies.tif")
+species_class_raster_mcintosh = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_mcintosh_allSpecies.tif")
+species_class_raster_phillips_anahim_lake = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_phillips_anahim_lake_allSpecies.tif")
+species_class_raster_piltz = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_piltz_allSpecies.tif")
+species_class_raster_punky_clisbako =raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_punky_clisbako_allSpecies.tif")
+species_class_raster_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_quesnel_allSpecies.tif")
+species_class_rast_allSpeciesAreas = terra::rast(species_class_raster_allSpeciesAreas)
+species_class_rast_ahbau = terra::rast(species_class_raster_ahbau)
+#species_class_rast_bells = terra::rast(species_class_raster_bells)
+species_class_rast_big_valley = terra::rast(species_class_raster_big_valley)
+species_class_rast_cariboo_lake = terra::rast(species_class_raster_cariboo_lake)
+species_class_rast_charleson_marvincreek = terra::rast(species_class_raster_charleson_marvincreek)
+species_class_rast_dash = terra::rast(species_class_raster_dash)
+species_class_rast_little_river = terra::rast(species_class_raster_little_river)
+species_class_rast_little_swift = terra::rast(species_class_raster_little_swift)
+species_class_rast_mcintosh = terra::rast(species_class_raster_mcintosh)
+species_class_rast_phillips_anahim_lake = terra::rast(species_class_raster_phillips_anahim_lake)
+species_class_rast_piltz = terra::rast(species_class_raster_piltz)
+species_class_rast_punky_clisbako = terra::rast(species_class_raster_punky_clisbako)
+species_class_rast_quesnel = terra::rast(species_class_raster_quesnel)
+# Areas including non-Fir only
+species_class_raster_nonFdAreas = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/species_class_raster_100m_nonFdAreas.tif")
+species_class_raster_gaspard  = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_gaspard_nonFd.tif")
+species_class_raster_hawks_creek = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_hawks_creek_nonFd.tif")
+species_class_raster_meldrum = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/species_class_raster_100m_meldrum_nonFd.tif")
+species_class_rast_nonFdAreas = terra::rast(species_class_raster_nonFdAreas)
+species_class_rast_gaspard  = terra::rast(species_class_raster_gaspard)
+species_class_rast_hawks_creek = terra::rast(species_class_raster_hawks_creek)
+species_class_rast_meldrum = terra::rast(species_class_raster_meldrum)
+```
+
+## Derive Masking Rasters: Filter for Quesnel validation including cruised blocks
 
 ```{r, fig.show='hold', out.width="25%", eval=FALSE}
 mask_burn2017 = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Burn_Severity TCC_Burn_Severity_2017.shp")
@@ -672,81 +1083,118 @@ mask_burn2021 = mask_burn2021["BurnSev"]
 mask_burn2017 = dplyr::filter(mask_burn2017, BurnSev == 'High')
 mask_burn2018 = dplyr::filter(mask_burn2018, BurnSev == 'High')
 mask_burn2021 = dplyr::filter(mask_burn2021, BurnSev == 'High')
-mask_burn2017_devBlocks = sf::st_intersection(sf::st_make_valid(mask_burn2017), lead_htop_sf_quesnel)
-mask_burn2018_devBlocks = sf::st_intersection(sf::st_make_valid(mask_burn2018), lead_htop_sf_quesnel)
-mask_burn2021_devBlocks = sf::st_intersection(sf::st_make_valid(mask_burn2021), lead_htop_sf_quesnel)
-masks_df_devBlocks = full_join(as_tibble(mask_burn2017_devBlocks), as_tibble(mask_burn2018_devBlocks), as_tibble(mask_burn2021_devBlocks), by = "geometry")
-masks_sf_devBlocks = st_as_sf(masks_df_devBlocks) # easier to combine by 'geometry'
-
-#mask_clearcut = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/RSLT_CCRES_CLEAR.shp")
-#mask_clearcut_tcc = sf::st_intersection(mask_clearcut, st_make_valid(lead_htop_sf_quesnel))
-#masks_df_tcc = full_join(as_tibble(masks_sf_tcc), as_tibble(mask_clearcut_tcc), by = 'geometry')
-#masks_sf_tcc = st_as_sf(masks_df_tcc)
-
-#mask_blocks = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Blocks_Join.shp")
-#mask_blocks_quesnel = sf::st_intersection(mask_blocks, st_make_valid(lead_htop_sf_quesnel))
-#masks_df_quesnel = full_join(as_tibble(masks_sf_quesnel), as_tibble(mask_blocks_quesnel), by = 'geometry')
-#masks_sf_quesnel = st_as_sf(masks_df_quesnel)
-
-mask_roads_devBlocks = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Roads.shp")
-mask_roads_devBlocks = sf::st_zm(mask_roads_devBlocks)
-mask_roads_devBlocks = sf::st_intersection(mask_roads_devBlocks, st_make_valid(lead_htop_sf_quesnel))
-mask_roads_devBlocks = sf::st_buffer(mask_roads_all, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
+mask_roads = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Roads.shp")
+mask_roads = sf::st_zm(mask_roads)
+mask_roads = sf::st_buffer(mask_roads, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
 mask_roads_ften = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/FTEN_Roads_All.shp")
 mask_roads_ften = sf::st_zm(mask_roads_ften)
-mask_roads_ften = sf::st_intersection(mask_roads_ften, st_make_valid(lead_htop_sf_quesnel))
 mask_roads_ften = sf::st_buffer(mask_roads_ften, dist = 15, nQuadSegs = 5, endCapStyle = "ROUND", joinStyle = "ROUND", mitreLimit = 2)
-masks_df_devBlocks = full_join(as_tibble(masks_sf_devBlocks), as_tibble(mask_roads_devBlocks), as_tibble(mask_roads_ften), by = 'geometry')
-masks_sf_devBlocks = st_as_sf(masks_df_devBlocks)
+mask_clearcut = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/RSLT_CCRES_CLEAR.shp")
+mask_blocks = sf::read_sf("/media/seamus/128GB_WORKD/data/vector/tcc_mask_layers/TCC_Blocks_Join.shp")
 
-masks_rast_devBlocks = rasterize(vect(masks_sf_devBlocks), lead_htop_rast_all, touches = TRUE)
-masks_raster_devBlocks = raster::raster(masks_rast_devBlocks)
-writeRaster(masks_raster_devBlocks, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_blockdev_raster_100m_quesnel_devBlocks.tif", overwrite=TRUE)
-ggplot(masks_sf_devBlocks) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+# Quesnel mask allowing cruised blocks for validation purposes
+mask_burn2017_devBlocks_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2017), lead_htop_sf_quesnel)
+mask_burn2018_devBlocks_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2018), lead_htop_sf_quesnel)
+mask_burn2021_devBlocks_quesnel = sf::st_intersection(sf::st_make_valid(mask_burn2021), lead_htop_sf_quesnel)
+masks_df_devBlocks_quesnel = full_join(as_tibble(mask_burn2017_devBlocks_quesnel), as_tibble(mask_burn2018_devBlocks_quesnel), as_tibble(mask_burn2021_devBlocks_quesnel), by = "geometry")
+masks_sf_devBlocks_quesnel = st_as_sf(masks_df_devBlocks_quesnel) # easier to combine by 'geometry'
+mask_roads_devBlocks_quesnel = sf::st_intersection(mask_roads, st_make_valid(lead_htop_sf_quesnel))
+mask_roads_ften_devBlocks_quesnel = sf::st_intersection(mask_roads_ften, st_make_valid(lead_htop_sf_quesnel))
+masks_df_devBlocks_quesnel = full_join(as_tibble(masks_sf_devBlocks_quesnel), as_tibble(mask_roads_devBlocks_quesnel), as_tibble(mask_roads_ften_devBlocks_quesnel), by = 'geometry')
+masks_sf_devBlocks_quesnel = st_as_sf(masks_df_devBlocks_quesnel)
+masks_rast_devBlocks_quesnel = rasterize(vect(masks_sf_devBlocks_quesnel), lead_htop_rast_quesnel, touches = TRUE)
+masks_raster_devBlocks_quesnel = raster::raster(masks_rast_devBlocks_quesnel)
+writeRaster(masks_raster_devBlocks_quesnel, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_devBlocks_quesnel.tif", overwrite=TRUE)
+ggplot(masks_sf_devBlocks_quesnel) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+
+# Master mask applied to all 16 operating areas for final deliverable
+mask_burn2017_fullMask_allAreas = sf::st_intersection(sf::st_make_valid(mask_burn2017), extent_sfz_3005)
+mask_burn2018_fullMask_allAreas = sf::st_intersection(sf::st_make_valid(mask_burn2018), extent_sfz_3005)
+mask_burn2021_fullMask_allAreas = sf::st_intersection(sf::st_make_valid(mask_burn2021), extent_sfz_3005)
+masks_df_fullMask_allAreas = full_join(as_tibble(mask_burn2017_fullMask_allAreas), as_tibble(mask_burn2018_fullMask_allAreas), as_tibble(mask_burn2021_fullMask_allAreas), by = "geometry")
+masks_sf_fullMask_allAreas = st_as_sf(masks_df_fullMask_allAreas)
+mask_clearcut_fullMask_allAreas = sf::st_intersection(mask_clearcut, st_make_valid(extent_sfz_3005)
+masks_df_fullMask_allAreas = full_join(as_tibble(masks_sf_fullMask_allAreas), as_tibble(mask_clearcut_fullMask_allAreas), by = 'geometry')
+masks_sf_fullMask_allAreas = st_as_sf(masks_df_fullMask_allAreas)
+mask_blocks_fullMask_allAreas = sf::st_intersection(mask_blocks, st_make_valid(extent_sfz_3005))
+masks_df_fullMask_allAreas = full_join(as_tibble(masks_sf_fullMask_allAreas), as_tibble(mask_blocks_fullMask_allAreas), by = 'geometry')
+masks_sf_fullMask_allAreas = st_as_sf(masks_df_fullMask_allAreas)
+mask_roads_fullMask_allAreas = sf::st_intersection(mask_roads, st_make_valid(extent_sfz_3005))
+mask_roads_ften_fullMask_allAreas = sf::st_intersection(mask_roads_ften, st_make_valid(extent_sfz_3005))
+masks_df_fullMask_allAreas = full_join(as_tibble(masks_sf_fullMask_allAreas), as_tibble(mask_roads_fullMask_allAreas), as_tibble(mask_roads_ften_fullMask_allAreas), by = 'geometry')
+masks_sf_fullMask_allAreas = st_as_sf(masks_df_fullMask_allAreas)
+masks_rast_fullMask_allAreas = rasterize(vect(masks_sf_fullMask_allAreas), lead_htop_rast_all, touches = TRUE)
+masks_raster_fullMask_allAreas = raster::raster(masks_rast_fullMask_allAreas)
+writeRaster(masks_raster_fullMask_allAreas, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_fullMask_allAreas.tif", overwrite=TRUE)
+ggplot(masks_sf_fullMask_allAreas) + geom_sf(aes(fill = 'red'), show.legend = FALSE)
+```
+
+```{r, echo=FALSE}
+masks_raster_devBlocks_quesnel = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_devBlocks_quesnel.tif")
+masks_raster_fullMask_allAreas = raster::raster("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/mask/mask_raster_100m_fullMask_allAreas.tif")
+masks_rast_devBlocks_quesnel = terra::rast(masks_raster_devBlocks_quesnel)
+masks_rast_fullMask_allAreas = terra::rast(masks_raster_fullMask_allAreas)
 ```
 
 ## Tidy: Apply masking
 
 ```{r, fig.show='hold', out.width="25%", eval=FALSE}
-# masking by mask
-masks_rast_all = terra::resample(masks_rast_all, elev_rast_all)
+# mask by mask
 lead_htop_rast_all = terra::resample(lead_htop_rast_all, elev_rast_all)
-lead_htop_rast_all_masked = mask(lead_htop_rast_all, masks_rast_all, inverse=TRUE)
-elev_rast_all_masked = mask(elev_rast_all, masks_rast_all, inverse=TRUE)
-slope_rast_all_masked = mask(slope_rast_all, masks_rast_all, inverse=TRUE)
-asp_cos_rast_all_masked = mask(asp_cos_rast_all, masks_rast_all, inverse=TRUE)
-asp_sin_rast_all_masked = mask(asp_sin_rast_all, masks_rast_all, inverse=TRUE)
-species_class_rast_all_masked = mask(species_class_rast_all, masks_rast_all, inverse=TRUE)
+masks_rast_fullMask_allAreas = terra::resample(masks_rast_fullMask_allAreas, elev_rast_all)
+species_class_rast_allSpeciesAreas = terra::resample(species_class_rast_allSpeciesAreas, elev_rast_all)
+lead_htop_rast_fullMask_allAreas_masked = mask(lead_htop_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+elev_rast_fullMask_allAreas_masked = mask(elev_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+slope_rast_fullMask_allAreas_masked = mask(slope_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+asp_cos_rast_fullMask_allAreas_masked = mask(asp_cos_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+asp_sin_rast_fullMask_allAreas_masked = mask(asp_sin_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+species_class_rast_allSpeciesAreas_masked = mask(species_class_rast_allSpeciesAreas, masks_rast_fullMask_allAreas, inverse=TRUE)
 
-# masking by species
-lead_htop_rast_all_masked = mask(lead_htop_rast_all_masked, species_class_rast_all_masked, inverse=FALSE)
-elev_rast_all_masked = mask(elev_rast_all_masked, species_class_rast_all_masked, inverse=FALSE)
-slope_rast_all_masked = mask(slope_rast_all_masked, species_class_rast_all_masked, inverse=FALSE)
-asp_cos_rast_all_masked = mask(asp_cos_rast_all_masked, species_class_rast_all_masked, inverse=FALSE)
-asp_sin_rast_all_masked = mask(asp_sin_rast_all_masked, species_class_rast_all_masked, inverse=FALSE)
+species_class_rast_allSpeciesAreas = terra::resample(species_class_rast_allSpeciesAreas, elev_rast_all)
+lead_htop_rast_fullMask_allAreas_masked = mask(lead_htop_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+elev_rast_fullMask_allAreas_masked = mask(elev_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+slope_rast_fullMask_allAreas_masked = mask(slope_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+asp_cos_rast_fullMask_allAreas_masked = mask(asp_cos_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+asp_sin_rast_fullMask_allAreas_masked = mask(asp_sin_rast_all, masks_rast_fullMask_allAreas, inverse=TRUE)
+species_class_rast_allSpeciesAreas_masked = mask(species_class_rast_allSpeciesAreas, masks_rast_fullMask_allAreas, inverse=TRUE)
+
+lead_htop_rast_quesnel = terra::resample(lead_htop_rast_quesnel, elev_rast_quesnel)
+masks_rast_devBlocks_quesnel = terra::resample(masks_rast_devBlocks_quesnel, elev_rast_quesnel)
+species_class_rast_quesnel = terra::resample(species_class_rast_quesnel, elev_rast_quesnel)
+lead_htop_rast_quesnel_masked = mask(lead_htop_rast_quesnel_masked, masks_rast_devBlocks_quesnel, inverse=TRUE)
+elev_rast_quesnel_masked = mask(elev_rast_quesnel_masked, masks_rast_devBlocks_quesnel, inverse=TRUE)
+slope_rast_quesnel_masked = mask(slope_rast_quesnel_masked, masks_rast_devBlocks_quesnel, inverse=TRUE)
+asp_cos_rast_quesnel_masked = mask(asp_cos_rast_quesnel_masked, masks_rast_devBlocks_quesnel, inverse=TRUE)
+asp_sin_rast_quesnel_masked = mask(asp_sin_rast_quesnel_masked, masks_rast_devBlocks_quesnel, inverse=TRUE)
+species_class_rast_quesnel_masked = mask(species_class_rast_quesnel_masked, masks_rast_devBlocks_quesnel, inverse=TRUE)
+
+
+
+# mask by species
+lead_htop_rast_fullMask_allAreas_masked = mask(lead_htop_rast_fullMask_allAreas_masked, species_class_rast_allSpeciesAreas_masked, inverse=FALSE)
+elev_rast_fullMask_allAreas_masked = mask(elev_rast_fullMask_allAreas_masked, species_class_rast_allSpeciesAreas_masked, inverse=FALSE)
+slope_rast_fullMask_allAreas_masked = mask(slope_rast_fullMask_allAreas_masked, species_class_rast_allSpeciesAreas_masked, inverse=FALSE)
+asp_cos_rast_fullMask_allAreas_masked = mask(asp_cos_rast_fullMask_allAreas_masked, species_class_rast_allSpeciesAreas_masked, inverse=FALSE)
+asp_sin_rast_fullMask_allAreas_masked = mask(asp_sin_rast_fullMask_allAreas_masked, species_class_rast_allSpeciesAreas_masked, inverse=FALSE)
 # save outputs
-writeRaster(elev_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/elev_raster_100m_quesnel.tif", overwrite=TRUE)
-writeRaster(slope_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/slope_raster_100m_quesnel.tif", overwrite=TRUE)
-writeRaster(slope_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/slope_raster_100m_gaspard.tif", overwrite=TRUE)
-writeRaster(asp_cos_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_cos_raster_100m_all_masked.tif", overwrite=TRUE)
-writeRaster(asp_cos_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_cos_raster_100m_all_masked.tif", overwrite=TRUE)
-writeRaster(asp_sin_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_sin_raster_100m_all_masked.tif", overwrite=TRUE)
-writeRaster(asp_sin_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_sin_raster_100m_all_masked.tif", overwrite=TRUE)
-writeRaster(species_class_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/species_class_raster_100m_all_masked.tif", overwrite=TRUE)
-writeRaster(species_class_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/species_class_raster_100m_all_masked.tif", overwrite=TRUE)
-writeRaster(lead_htop_rast_all_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/lead_htop_raster_100m_all_masked.tif", overwrite=TRUE)
+writeRaster(elev_rast_fullMask_allAreas_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/elev_rast_fullMask_allAreas_masked.tif", overwrite=TRUE)
+writeRaster(slope_rast_fullMask_allAreas_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/slope_rast_fullMask_allAreas_masked.tif", overwrite=TRUE)
+writeRaster(asp_cos_rast_fullMask_allAreas_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_cos_rast_fullMask_allAreas_masked.tif", overwrite=TRUE)
+writeRaster(asp_sin_rast_fullMask_allAreas_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_sin_rast_fullMask_allAreas_masked.tif", overwrite=TRUE)
+writeRaster(species_class_rast_allSpeciesAreas_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/species_class_rast_allSpeciesAreas_masked.tif", overwrite=TRUE)
+writeRaster(lead_htop_rast_fullMask_allAreas_masked, filename = "/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/lead_htop_rast_fullMask_allAreas_masked.tif", overwrite=TRUE)
 ```
 
 ## Tidy: Merge , rename, stack covariates
 
 ```{r, fig.show='hold', out.width="50%"}
 # Rename rasters
-names(elev_rast_all_masked) = "elev"
-names(slope_rast_all_masked) = "slope"
-names(asp_cos_rast_all_masked) = "asp_cos"
-names(asp_sin_rast_all_masked) = "asp_sin"
-names(species_class_rast_all_masked) = "species_class"
-names(lead_htop_rast_all_masked) = "lead_htop"
+names(elev_rast_fullMask_allAreas_masked) = "elev"
+names(slope_rast_fullMask_allAreas_masked) = "slope"
+names(asp_cos_rast_fullMask_allAreas_masked) = "asp_cos"
+names(asp_sin_rast_fullMask_allAreas_masked) = "asp_sin"
+names(species_class_rast_allSpeciesAreas_masked) = "species_class"
+names(lead_htop_rast_fullMask_allAreas_masked) = "lead_htop"
 # transform spatRaster to raster
 elev_raster_all_masked = raster::raster(elev_rast_all_masked)
 slope_raster_all_masked = raster::raster(slope_rast_all_masked)
