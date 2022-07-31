@@ -1,7 +1,7 @@
 ---
-title: "WSVHA Revisions (With CHM Aggregated using MAX function)"
+title: "WSVHA Revisions (Raster Aggregation: 'MEAN')"
 author: "Cabin-GIS"
-date: "15/07/2022 (vV)"
+date: "31/07/2022"
 output: 
   pdf_document:
     toc: TRUE
@@ -218,7 +218,7 @@ lead_htop_raster_list_ahbau <- lapply(filez_vh_ahbau, raster)
 lead_htop_raster_ahbau = do.call(merge, c(lead_htop_raster_list_ahbau, tolerance = 1))
 lead_htop_rast_ahbau = terra::rast(lead_htop_raster_ahbau)
 terra::crs(lead_htop_rast_ahbau) = "epsg:3005"
-lead_htop_rast_ahbau = terra::aggregate(lead_htop_rast_ahbau, fact = 100, fun = max)
+lead_htop_rast_ahbau = terra::aggregate(lead_htop_rast_ahbau, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_ahbau, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/ahbau/lead_htop_raster_100m_ahbau.tif", overwrite=TRUE)
 lead_htop_raster_ahbau = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/ahbau/lead_htop_raster_100m_ahbau.tif")
 
@@ -227,7 +227,7 @@ lead_htop_raster_list_bells <- lapply(filez_vh_bells, raster)
 lead_htop_raster_bells = do.call(merge, c(lead_htop_raster_list_bells, tolerance = 1))
 lead_htop_rast_bells = terra::rast(lead_htop_raster_bells)
 terra::crs(lead_htop_rast_bells) = "epsg:3005"
-lead_htop_rast_bells = terra::aggregate(lead_htop_rast_bells, fact = 100, fun = max)
+lead_htop_rast_bells = terra::aggregate(lead_htop_rast_bells, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_bells, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/lead_htop_raster_100m_bells.tif", overwrite=TRUE)
 lead_htop_raster_bells = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/lead_htop_raster_100m_bells.tif")
 
@@ -236,7 +236,7 @@ lead_htop_raster_list_big_valley <- lapply(filez_vh_big_valley, raster)
 lead_htop_raster_big_valley = do.call(merge, c(lead_htop_raster_list_big_valley, tolerance = 1))
 lead_htop_rast_big_valley = terra::rast(lead_htop_raster_big_valley)
 terra::crs(lead_htop_rast_big_valley) = "epsg:3005"
-lead_htop_rast_big_valley = terra::aggregate(lead_htop_rast_big_valley, fact = 100, fun = max)
+lead_htop_rast_big_valley = terra::aggregate(lead_htop_rast_big_valley, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_big_valley, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/lead_htop_raster_100m_big_valley.tif", overwrite=TRUE)
 lead_htop_raster_big_valley = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/lead_htop_raster_100m_big_valley.tif")
 
@@ -245,7 +245,7 @@ lead_htop_raster_list_cariboo_lake <- lapply(filez_vh_cariboo_lake, raster)
 lead_htop_raster_cariboo_lake = do.call(merge, c(lead_htop_raster_list_cariboo_lake, tolerance = 1))
 lead_htop_rast_cariboo_lake = terra::rast(lead_htop_raster_cariboo_lake)
 terra::crs(lead_htop_rast_cariboo_lake) = "epsg:3005"
-lead_htop_rast_cariboo_lake = terra::aggregate(lead_htop_rast_cariboo_lake, fact = 100, fun = max)
+lead_htop_rast_cariboo_lake = terra::aggregate(lead_htop_rast_cariboo_lake, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_cariboo_lake, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/cariboo_lake/lead_htop_raster_100m_cariboo_lake.tif", overwrite=TRUE)
 lead_htop_raster_cariboo_lake = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/cariboo_lake/lead_htop_raster_100m_cariboo_lake.tif")
 
@@ -254,7 +254,7 @@ lead_htop_raster_list_charleson_marvincreek <- lapply(filez_vh_charleson_marvinc
 lead_htop_raster_charleson_marvincreek = do.call(merge, c(lead_htop_raster_list_charleson_marvincreek, tolerance = 1))
 lead_htop_rast_charleson_marvincreek = terra::rast(lead_htop_raster_charleson_marvincreek)
 terra::crs(lead_htop_rast_charleson_marvincreek) = "epsg:3005"
-lead_htop_rast_charleson_marvincreek = terra::aggregate(lead_htop_rast_charleson_marvincreek, fact = 100, fun = max)
+lead_htop_rast_charleson_marvincreek = terra::aggregate(lead_htop_rast_charleson_marvincreek, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_charleson_marvincreek, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/charleson_marvincreek/lead_htop_raster_100m_charleson_marvincreek.tif", overwrite=TRUE)
 lead_htop_raster_charleson_marvincreek = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/charleson_marvincreek/lead_htop_raster_100m_charleson_marvincreek.tif")
 
@@ -263,7 +263,7 @@ lead_htop_raster_list_dash <- lapply(filez_vh_dash, raster)
 lead_htop_raster_dash = do.call(merge, c(lead_htop_raster_list_dash, tolerance = 1))
 lead_htop_rast_dash = terra::rast(lead_htop_raster_dash)
 terra::crs(lead_htop_rast_dash) = "epsg:3005"
-lead_htop_rast_dash = terra::aggregate(lead_htop_rast_dash, fact = 100, fun = max)
+lead_htop_rast_dash = terra::aggregate(lead_htop_rast_dash, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_dash, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/dash/lead_htop_raster_100m_dash.tif", overwrite=TRUE)
 lead_htop_raster_dash = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/dash/lead_htop_raster_100m_dash.tif")
 
@@ -272,7 +272,7 @@ lead_htop_raster_list_gaspard <- lapply(filez_vh_gaspard, raster)
 lead_htop_raster_gaspard = do.call(merge, c(lead_htop_raster_list_gaspard, tolerance = 1))
 lead_htop_rast_gaspard = terra::rast(lead_htop_raster_gaspard)
 terra::crs(lead_htop_rast_gaspard) = "epsg:3005"
-lead_htop_rast_gaspard = terra::aggregate(lead_htop_rast_gaspard, fact = 100, fun = max)
+lead_htop_rast_gaspard = terra::aggregate(lead_htop_rast_gaspard, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_gaspard, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/lead_htop_raster_100m_gaspard.tif", overwrite=TRUE)
 lead_htop_raster_gaspard = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/lead_htop_raster_100m_gaspard.tif")
 terra::plot(lead_htop_rast_gaspard)
@@ -282,7 +282,7 @@ lead_htop_raster_list_hawks_creek <- lapply(filez_vh_hawks_creek, raster)
 lead_htop_raster_hawks_creek = do.call(merge, c(lead_htop_raster_list_hawks_creek, tolerance = 1))
 lead_htop_rast_hawks_creek = terra::rast(lead_htop_raster_hawks_creek)
 terra::crs(lead_htop_rast_hawks_creek) = "epsg:3005"
-lead_htop_rast_hawks_creek = terra::aggregate(lead_htop_rast_hawks_creek, fact = 100, fun = max)
+lead_htop_rast_hawks_creek = terra::aggregate(lead_htop_rast_hawks_creek, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_hawks_creek, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/hawks_creek/lead_htop_raster_100m_hawks_creek.tif", overwrite=TRUE)
 lead_htop_raster_hawks_creek = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/hawks_creek/lead_htop_raster_100m_hawks_creek.tif")
 terra::plot(lead_htop_rast_hawks_creek)
@@ -292,7 +292,7 @@ lead_htop_raster_list_hawks_creek2 <- lapply(filez_vh_hawks_creek2, raster)
 lead_htop_raster_hawks_creek2 = do.call(merge, c(lead_htop_raster_list_hawks_creek2, tolerance = 1))
 lead_htop_rast_hawks_creek2 = terra::rast(lead_htop_raster_hawks_creek2)
 terra::crs(lead_htop_rast_hawks_creek2) = "epsg:3005"
-lead_htop_rast_hawks_creek2 = terra::aggregate(lead_htop_rast_hawks_creek2, fact = 100, fun = max)
+lead_htop_rast_hawks_creek2 = terra::aggregate(lead_htop_rast_hawks_creek2, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_hawks_creek2, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/hawks_creek/lead_htop_raster_100m_hawks_creek2.tif", overwrite=TRUE)
 lead_htop_raster_hawks_creek2 = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/hawks_creek/lead_htop_raster_100m_hawks_creek2.tif")
 terra::plot(lead_htop_rast_hawks_creek2)
@@ -302,7 +302,7 @@ lead_htop_raster_list_little_river <- lapply(filez_vh_little_river, raster)
 lead_htop_raster_little_river = do.call(merge, c(lead_htop_raster_list_little_river, tolerance = 1))
 lead_htop_rast_little_river = terra::rast(lead_htop_raster_little_river)
 terra::crs(lead_htop_rast_little_river) = "epsg:3005"
-lead_htop_rast_little_river = terra::aggregate(lead_htop_rast_little_river, fact = 100, fun = max)
+lead_htop_rast_little_river = terra::aggregate(lead_htop_rast_little_river, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_little_river, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_river/lead_htop_raster_100m_little_river.tif", overwrite=TRUE)
 lead_htop_raster_little_river = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_river/lead_htop_raster_100m_little_river.tif")
 
@@ -311,7 +311,7 @@ lead_htop_raster_list_little_swift <- lapply(filez_vh_little_swift, raster)
 lead_htop_raster_little_swift = do.call(merge, c(lead_htop_raster_list_little_swift, tolerance = 1))
 lead_htop_rast_little_swift = terra::rast(lead_htop_raster_little_swift)
 terra::crs(lead_htop_rast_little_swift) = "epsg:3005"
-lead_htop_rast_little_swift = terra::aggregate(lead_htop_rast_little_swift, fact = 100, fun = max)
+lead_htop_rast_little_swift = terra::aggregate(lead_htop_rast_little_swift, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_little_swift, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_swift/lead_htop_raster_100m_little_swift.tif", overwrite=TRUE)
 lead_htop_raster_little_swift = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_swift/lead_htop_raster_100m_little_swift.tif")
 
@@ -320,7 +320,7 @@ lead_htop_raster_list_mcintosh <- lapply(filez_vh_mcintosh, raster)
 lead_htop_raster_mcintosh = do.call(merge, c(lead_htop_raster_list_mcintosh, tolerance = 1))
 lead_htop_rast_mcintosh = terra::rast(lead_htop_raster_mcintosh)
 terra::crs(lead_htop_rast_mcintosh) = "epsg:3005"
-lead_htop_rast_mcintosh = terra::aggregate(lead_htop_rast_mcintosh, fact = 100, fun = max)
+lead_htop_rast_mcintosh = terra::aggregate(lead_htop_rast_mcintosh, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_mcintosh, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/mcintosh/lead_htop_raster_100m_mcintosh.tif", overwrite=TRUE)
 lead_htop_raster_mcintosh = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/mcintosh/lead_htop_raster_100m_mcintosh.tif")
 
@@ -334,7 +334,7 @@ lead_htop_raster_mcintosh = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64
 lead_htop_raster_meldrum = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/meldrum/Meldrum CHM/Meldrum_merge.tif")
 lead_htop_rast_meldrum = terra::rast(lead_htop_raster_meldrum)
 terra::crs(lead_htop_rast_meldrum) = "epsg:3005"
-lead_htop_rast_meldrum = terra::aggregate(lead_htop_rast_meldrum, fact = 100, fun = max)
+lead_htop_rast_meldrum = terra::aggregate(lead_htop_rast_meldrum, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_meldrum, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/meldrum/lead_htop_raster_100m_meldrum_20220712.tif", overwrite=TRUE)
 lead_htop_raster_meldrum = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/meldrum/lead_htop_raster_100m_meldrum_20220712.tif")
 terra::plot(lead_htop_rast_meldrum)
@@ -344,7 +344,7 @@ lead_htop_raster_list_phillips_anahim_lake <- lapply(filez_vh_phillips_anahim_la
 lead_htop_raster_phillips_anahim_lake = do.call(merge, c(lead_htop_raster_list_phillips_anahim_lake, tolerance = 1))
 lead_htop_rast_phillips_anahim_lake = terra::rast(lead_htop_raster_phillips_anahim_lake)
 terra::crs(lead_htop_rast_phillips_anahim_lake) = "epsg:3005"
-lead_htop_rast_phillips_anahim_lake = terra::aggregate(lead_htop_rast_phillips_anahim_lake, fact = 100, fun = max)
+lead_htop_rast_phillips_anahim_lake = terra::aggregate(lead_htop_rast_phillips_anahim_lake, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_phillips_anahim_lake, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/phillips_anahim_lake/lead_htop_raster_100m_phillips_anahim_lake.tif", overwrite=TRUE)
 lead_htop_raster_phillips_anahim_lake = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/phillips_anahim_lake/lead_htop_raster_100m_phillips_anahim_lake.tif")
 
@@ -353,7 +353,7 @@ lead_htop_raster_list_piltz <- lapply(filez_vh_piltz, raster)
 lead_htop_raster_piltz = do.call(merge, c(lead_htop_raster_list_piltz, tolerance = 1))
 lead_htop_rast_piltz = terra::rast(lead_htop_raster_piltz)
 terra::crs(lead_htop_rast_piltz) = "epsg:3005"
-lead_htop_rast_piltz = terra::aggregate(lead_htop_rast_piltz, fact = 100, fun = max)
+lead_htop_rast_piltz = terra::aggregate(lead_htop_rast_piltz, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_piltz, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/piltz/lead_htop_raster_100m_piltz.tif", overwrite=TRUE)
 lead_htop_raster_piltz = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/piltz/lead_htop_raster_100m_piltz.tif")
 
@@ -362,7 +362,7 @@ lead_htop_raster_list_punky_clisbako <- lapply(filez_vh_punky_clisbako, raster)
 lead_htop_raster_punky_clisbako = do.call(merge, c(lead_htop_raster_list_punky_clisbako, tolerance = 1))
 lead_htop_rast_punky_clisbako = terra::rast(lead_htop_raster_punky_clisbako)
 terra::crs(lead_htop_rast_punky_clisbako) = "epsg:3005"
-lead_htop_rast_punky_clisbako = terra::aggregate(lead_htop_rast_punky_clisbako, fact = 100, fun = max)
+lead_htop_rast_punky_clisbako = terra::aggregate(lead_htop_rast_punky_clisbako, fact = 100, fun = mean)
 writeRaster(lead_htop_rast_punky_clisbako, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/lead_htop_raster_100m_punky_clisbako.tif", overwrite=TRUE)
 lead_htop_raster_punky_clisbako = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/lead_htop_raster_100m_punky_clisbako.tif")
 
@@ -371,7 +371,7 @@ lead_htop_raster_list_quesnel <- lapply(filez_vh_quesnel, raster)
 lead_htop_raster_quesnel = do.call(merge, c(lead_htop_raster_list_quesnel, tolerance = 1))
 lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
 terra::crs(lead_htop_rast_quesnel) = "epsg:3005"
-lead_htop_rast_quesnel = terra::aggregate(lead_htop_rast_quesnel, fact = 100, fun = max)
+lead_htop_rast_quesnel = terra::aggregate(lead_htop_rast_quesnel, fact = 100, fun = mean)
 lead_htop_rast_quesnel = terra::resample(lead_htop_rast_quesnel, elev_rast_quesnel)
 writeRaster(lead_htop_rast_quesnel, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/lead_htop_raster_100m_quesnel.tif", overwrite=TRUE)
 lead_htop_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/lead_htop_raster_100m_quesnel.tif")
@@ -411,9 +411,29 @@ lead_htop_raster_allSpeciesAreas = raster::raster("/media/seamus/Ubuntu 22_04 LT
 lead_htop_rast_allSpeciesAreas = terra::rast(lead_htop_raster_allSpeciesAreas)
 ```
 
-```{r, fig.show='hold', out.width="50%", echo=FALSE}
-elev_rast_allSpeciesAreas = terra::rast("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/elev_raster_100m_allSpeciesAreas_20220712vQ.tif")
-lead_htop_rast_allSpeciesAreas = terra::rast("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/lead_htop_raster_100m_allSpeciesAreas_20220715vV.tif")
+```{r, fig.show='hold', out.width="50%", echo=FALSE, eval=FALSE}
+#elev_raster_ahbau = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/ahbau/elev_raster_100m_ahbau.tif")
+#elev_raster_bells = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/bells/elev_raster_100m_bells.tif")
+#elev_raster_big_valley = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/big_valley/elev_raster_100m_big_valley.tif")
+#elev_raster_cariboo_lake = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/cariboo_lake/elev_raster_100m_cariboo_lake.tif")
+#elev_raster_charleson_marvincreek = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/charleson_marvincreek/elev_raster_100m_charleson_marvincreek.tif")
+#elev_raster_dash = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/dash/elev_raster_100m_dash.tif")
+#elev_raster_gaspard = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/gaspard/elev_raster_100m_gaspard.tif")
+#elev_raster_hawks_creek = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/hawks_creek/elev_raster_100m_hawks_creek.tif")
+#elev_raster_hawks_creek2 = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/hawks_creek/elev_raster_100m_hawks_creek2.tif")
+#elev_raster_little_river = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_river/elev_raster_100m_little_river.tif")
+#elev_raster_little_swift = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/little_swift/elev_raster_100m_little_swift.tif")
+#elev_raster_mcintosh = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/mcintosh/elev_raster_100m_mcintosh.tif")
+#elev_raster_meldrum = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/meldrum/elev_raster_100m_meldrum_20220712.tif")
+#elev_raster_phillips_anahim_lake = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/phillips_anahim_lake/elev_raster_100m_phillips_anahim_lake.tif")
+#elev_raster_piltz = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/piltz/elev_raster_100m_piltz.tif")
+#elev_raster_punky_clisbako = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/punky_clisbako/elev_raster_100m_punky_clisbako.tif")
+#elev_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/elev_raster_100m_quesnel.tif")
+
+#/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/masked_covs_vQ
+
+elev_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/unmasked_covs_vQ/elev_raster_100m_allSpeciesAreas_20220712vQ.tif")
+lead_htop_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/unmasked_covs_vQ/lead_htop_raster_100m_allSpeciesAreas_20220712vQ.tif")
 terra::plot(elev_rast_allSpeciesAreas)
 terra::plot(lead_htop_rast_allSpeciesAreas)
 ```
@@ -434,11 +454,11 @@ writeRaster(lead_htop_rast_allSpeciesAreas, filename = "/media/seamus/128GB_WORK
 ```
 
 ```{r, fig.show='hold', out.width="33%", echo=FALSE}
-elev_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/elev_raster_100m_allSpeciesAreas_20220712vQ.tif")
-lead_htop_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/lead_htop_raster_100m_allSpeciesAreas_20220715vV.tif")
-slope_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/slope_raster_100m_allSpeciesAreas_20220712vQ.tif")
-asp_cos_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_cos_raster_100m_allSpeciesAreas_20220712vQ.tif")
-asp_sin_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/asp_sin_raster_100m_allSpeciesAreas_20220712vQ.tif")
+elev_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/unmasked_covs_vQ/elev_raster_100m_allSpeciesAreas_20220712vQ.tif")
+lead_htop_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/unmasked_covs_vQ/lead_htop_raster_100m_allSpeciesAreas_20220712vQ.tif")
+slope_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/unmasked_covs_vQ/slope_raster_100m_allSpeciesAreas_20220712vQ.tif")
+asp_cos_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/unmasked_covs_vQ/asp_cos_raster_100m_allSpeciesAreas_20220712vQ.tif")
+asp_sin_rast_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/unmasked-covariates/dem-based/unmasked_covs_vQ/asp_sin_raster_100m_allSpeciesAreas_20220712vQ.tif")
 terra::plot(elev_rast_allSpeciesAreas)
 terra::plot(slope_rast_allSpeciesAreas)
 terra::plot(asp_cos_rast_allSpeciesAreas)
@@ -563,12 +583,12 @@ writeRaster(species_class_raster_allSpeciesAreas_masked, filename = "/media/seam
 ```
 
 ```{r, fig.show='hold', out.width="33%", echo=FALSE}
-lead_htop_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/lead_htop_rast_allSpeciesAreas_masked_20220715vV.tif")
-elev_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/elev_rast_allSpeciesAreas_masked_20220712vQ.tif")
-slope_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/slope_rast_allSpeciesAreas_masked_20220712vQ.tif")
-asp_cos_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_cos_rast_allSpeciesAreas_masked_20220712vQ.tif")
-asp_sin_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/asp_sin_rast_allSpeciesAreas_masked_20220712vQ.tif")
-species_class_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/species_class_rast_allSpeciesAreas_masked_20220712vQ.tif")
+lead_htop_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/masked_covs_vQ/lead_htop_rast_allSpeciesAreas_masked_20220712vQ.tif")
+elev_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/masked_covs_vQ/elev_rast_allSpeciesAreas_masked_20220712vQ.tif")
+slope_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/masked_covs_vQ/slope_rast_allSpeciesAreas_masked_20220712vQ.tif")
+asp_cos_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/masked_covs_vQ/asp_cos_rast_allSpeciesAreas_masked_20220712vQ.tif")
+asp_sin_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/masked_covs_vQ/asp_sin_rast_allSpeciesAreas_masked_20220712vQ.tif")
+species_class_rast_allSpeciesAreas_masked = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/inputs/masked-covariates/dem-based/masked_covs_vQ/species_class_rast_allSpeciesAreas_masked_20220712vQ.tif")
 ```
 
 ### 1.6. All-Species Areas: Stack and Tidy Covariates
@@ -684,7 +704,7 @@ tunedModel_rf_m1_full <- tuneResult_rf_m1_full$best.model
 tunedModel_rf_m1_train <- tuneResult_rf_m1_train$best.model
 tunedModel_rf_m1 = predict(tunedModel_rf_m1_full, newdata=faib_vri_true_m1_df, type = "response")
 tunedModel_rf_m1_test = predict(tunedModel_rf_m1_train, newdata=test_m1, type = "response")
-save(tunedModel_rf_m1_full, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_randomForest_bootstrapped_demBased_allAreas_20220715vV.RData")
+save(tunedModel_rf_m1_full, file = "/media/seamus/128GB_WORKD/data/models/tcc-wsvha/wsvha_model1_randomForest_bootstrapped_demBased_allAreas_20220731.RData")
 tuneResult_rf_m1_full
 R2(tunedModel_rf_m1, faib_vri_true_m1_df$wsvha_L)
 MAE(tunedModel_rf_m1, faib_vri_true_m1_df$wsvha_L)
@@ -695,13 +715,13 @@ RMSE(tunedModel_rf_m1_test, test_m1$wsvha_L)
 wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas <- raster::predict(covs_m1_allSpeciesAreas, tunedModel_rf_m1_full)
 wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas$layer[wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas$layer <= 0] = 0
 writeRaster(wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas, overwrite=TRUE,
-  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas_20220715vV.tif")
+  filename = "/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas_20220731.tif")
 plot(wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas, main="WSVHA for all-Species Operating Areas: Random Forest", cex.main=0.8, maxpixels=22000000)
 hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas, main="WSVHA for all-Species Operating Areas: Random Forest", cex.main=0.8, maxpixels=22000000) 
 ```
 
 ```{r, fig.show='hold', out.width="50%", echo=FALSE}
-wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas_20220715vV.tif")
+wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas = terra::rast("/media/seamus/128GB_WORKD/data/raster/tcc/outputs/wsvha/bootstrapped/wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas_20220731.tif")
 plot(wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas, main="WSVHA for all-Species Operating Areas: Random Forest", cex.main=0.8, maxpixels=22000000)
 hist(wsvha_model1_randomForest_bootstrapped_demBased_100m_allSpeciesAreas, main="WSVHA for all-Species Operating Areas: Random Forest", cex.main=0.8, maxpixels=22000000) 
 ```
@@ -726,7 +746,7 @@ lead_htop_raster_list_quesnel <- lapply(filez_vh_quesnel, raster)
 lead_htop_raster_quesnel = do.call(merge, c(lead_htop_raster_list_quesnel, tolerance = 1))
 lead_htop_rast_quesnel = terra::rast(lead_htop_raster_quesnel)
 terra::crs(lead_htop_rast_quesnel) = "epsg:3005"
-lead_htop_rast_quesnel = terra::aggregate(lead_htop_rast_quesnel, fact = 100, fun = max)
+lead_htop_rast_quesnel = terra::aggregate(lead_htop_rast_quesnel, fact = 100, fun = mean)
 lead_htop_rast_quesnel = terra::resample(lead_htop_rast_quesnel, elev_rast_quesnel)
 writeRaster(lead_htop_rast_quesnel, filename = "/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/lead_htop_raster_100m_quesnel.tif", overwrite=TRUE)
 lead_htop_raster_quesnel = raster::raster("/media/seamus/Ubuntu 22_04 LTS amd64/mosaics/quesnel/lead_htop_raster_100m_quesnel.tif")
